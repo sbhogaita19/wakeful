@@ -40,8 +40,9 @@ export function Income() {
       <Dividends />
       <Joint />
       <Card title="Payslips">
-        {v.payslips.length ? [...v.payslips].sort((a, b) => b.date.localeCompare(a.date)).map((p) => {
-          const warn = taxCheck(p).problems.join(' ');
+        {v.payslips.length ? [...v.payslips].sort((a, b) => b.date.localeCompare(a.date)).map((p, _i, all) => {
+          const isLatest = all.find((x) => x.memberId === p.memberId)?.id === p.id; // warn once per person, not on every slip
+          const warn = isLatest ? taxCheck(p).problems.join(' ') : '';
           return (
             <div className="li" key={p.id} style={{ cursor: 'pointer' }} onClick={() => setEdit(p)}>
               <div><div className="t">{name(p.memberId)} · {p.employer || 'Employer'}</div>

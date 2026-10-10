@@ -184,6 +184,11 @@ code, kbd { font-family: var(--mono); background: var(--inset); border: 1px soli
   .tabbar button.on { color: var(--accent); }
   .g2, .g3, .g4, .g-main { grid-template-columns: 1fr; }
   .g4.keep2, .g2.keep2 { grid-template-columns: 1fr 1fr; }
+  .g3:has(> .card > .stat), .g3:has(> .stat) { grid-template-columns: 1fr 1fr; }
+  .g3:has(> .card > .stat) > :last-child:nth-child(odd), .g3:has(> .stat) > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .card { padding: 16px; }
+  .stat .val { font-size: 25px; }
+  .card .ring { margin: 0 auto; }
   .fgrid { grid-template-columns: 1fr; }
   .head h1 { font-size: 32px; }
   .head p { font-size: 15.5px; }

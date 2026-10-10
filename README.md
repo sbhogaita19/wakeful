@@ -32,7 +32,7 @@ Wakeful wraps as a Capacitor app (screenshots blocked, no cloud backup).
 npm run android:sync
 npm run android:open   # Android Studio → Run
 ```
-CLI build: `cd android && ./gradlew assembleDebug` (needs JDK 17–25 and the Android SDK).
+CLI build: `cd android && ./gradlew assembleDebug` (needs a JDK 21+ and the Android SDK; the wrapper uses Gradle 9.1).
 
 ## Security
 See [SECURITY.md](SECURITY.md). In short: AES-256-GCM, passphrase + recovery key, strict CSP, auto-lock, nothing leaves the device. **Never commit real statements** — `.gitignore` and a pre-commit hook (`npm ci` installs it) block them; only fictional samples live in this repo.

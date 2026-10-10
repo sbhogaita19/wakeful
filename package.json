@@ -2,7 +2,7 @@
   "name": "wakeful",
   "version": "0.1.0",
   "private": true,
-  "description": "Wakeful \u2014 awareness of bills and household money. Private, local-first.",
+  "description": "Wakeful — awareness of bills and household money. Private, local-first.",
   "type": "module",
   "license": "MIT",
   "scripts": {
@@ -17,15 +17,15 @@
     "android:open": "cap open android"
   },
   "dependencies": {
-    "@capacitor/android": "^6.2.0",
-    "@capacitor/core": "^6.2.0",
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
     "@fontsource-variable/inter": "^5.1.0",
     "pdfjs-dist": "4.10.38",
     "react": "18.3.1",
     "react-dom": "18.3.1"
   },
   "devDependencies": {
-    "@capacitor/cli": "^6.2.0",
+    "@capacitor/cli": "^8.5.3",
     "@types/react": "18.3.12",
     "@types/react-dom": "18.3.1",
     "@vitejs/plugin-react": "4.3.4",

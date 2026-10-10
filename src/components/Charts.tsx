@@ -3,12 +3,12 @@ import { monthLabel } from '../lib/dates';
 
 export function Ring({ value, size = 168, stroke = 12, label }: { value: number; size?: number; stroke?: number; label?: string }) {
   const r = (size - stroke) / 2, c = 2 * Math.PI * r;
-  const col = value >= 70 ? 'var(--accent)' : value >= 45 ? 'var(--warn)' : 'var(--bad)';
+  const col = value >= 70 ? 'var(--good)' : value >= 45 ? 'var(--warn)' : 'var(--bad)';
   return (
     <div className="ring" style={{ width: size, height: size }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }} aria-hidden>
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--line)" strokeWidth={stroke} />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={col} strokeWidth={stroke} strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - value / 100)} style={{ transition: 'stroke-dashoffset .8s ease' }} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={col} strokeWidth={stroke} strokeLinecap="butt" strokeDasharray={c} strokeDashoffset={c * (1 - value / 100)} style={{ transition: 'stroke-dashoffset .8s ease' }} />
       </svg>
       <div className="v"><b>{value}</b><span>{label}</span></div>
     </div>

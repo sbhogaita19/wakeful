@@ -9,7 +9,7 @@ export function getPref(): ThemePref {
 export function applyTheme(pref: ThemePref = getPref()) {
   const dark = pref === 'dark' || (pref === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0b0e13' : '#f6f2ea');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#000000' : '#fbf9f4');
   document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', dark ? 'dark' : 'light');
 }
 

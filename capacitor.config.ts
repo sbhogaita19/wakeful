@@ -4,7 +4,7 @@ const config: CapacitorConfig = {
   appId: 'app.wakeful.home',
   appName: 'Wakeful',
   webDir: 'dist',
-  backgroundColor: '#0b0e13',
-  android: { allowMixedContent: false, backgroundColor: '#0b0e13' },
+  backgroundColor: '#000000',
+  android: { allowMixedContent: false, backgroundColor: '#000000' },
 };
 export default config;

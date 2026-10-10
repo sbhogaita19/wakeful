@@ -38,7 +38,7 @@ CLI build: `cd android && ./gradlew assembleDebug` (needs a JDK 21+ and the Andr
 See [SECURITY.md](SECURITY.md). In short: AES-256-GCM, passphrase + recovery key, strict CSP, auto-lock, nothing leaves the device. **Never commit real statements** — `.gitignore` and a pre-commit hook (`npm ci` installs it) block them; only fictional samples live in this repo.
 
 ## Stack
-Vite · React · TypeScript · WebCrypto · pdf.js (in-browser) · Capacitor. Fonts bundled (Inter). Tests with Vitest.
+Vite · React · TypeScript · WebCrypto · pdf.js (in-browser) · Capacitor. Fonts bundled (Geist, JetBrains Mono); interface style follows the omp.sh docs (black, hairlines, mono labels). The mark is a seated Buddha in a halo. Tests with Vitest.
 
 ## Caveats
 Wakeful gives general information from your own data, not financial advice. PDF parsing varies by bank layout; check flagged rows. Tax/NI checks are indicative (England, tax code 1257L). Benchmark figures are bundled with an as-of date and must be refreshed.

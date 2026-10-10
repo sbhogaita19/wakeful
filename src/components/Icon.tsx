@@ -27,6 +27,14 @@ export function Icon({ n }: { n: keyof typeof P | string }) {
     </svg>
   );
 }
+/** Wakeful mark: a seated Buddha in a halo. Used in the header and as the app icon only. */
 export const Logo = () => (
-  <svg viewBox="0 0 64 64" aria-hidden><rect width="64" height="64" rx="16" fill="#0b0e13" /><circle cx="32" cy="32" r="17" fill="none" stroke="#5ad1b4" strokeWidth="4" /><circle cx="32" cy="32" r="5" fill="#e6c27a" /></svg>
+  <svg viewBox="0 0 64 64" aria-hidden>
+    <circle cx="32" cy="32" r="28" fill="none" stroke="var(--accent)" strokeWidth="2.2" />
+    <g fill="var(--text)">
+      <ellipse cx="32" cy="19.6" rx="4.9" ry="5.7" /><circle cx="32" cy="13.4" r="1.8" />
+      <path d="M28.8 25.6Q32 25 35.2 25.6C41 26 43.5 27.5 43.5 29.5L48 47H16L20.5 29.5C20.5 27.5 23 26 28.8 25.6Z" />
+      <ellipse cx="32" cy="47.6" rx="19.8" ry="5.2" />
+    </g>
+  </svg>
 );

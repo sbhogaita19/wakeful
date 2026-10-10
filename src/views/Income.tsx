@@ -212,7 +212,8 @@ function Joint() {
   const ps = personalSpend(v, m);
   return (
     <Card title="Joint account" sub={ja.accounts.join(', ')} action={<div className="seg"><button className={basis === 'income' ? 'on' : ''} onClick={() => setBasis('income')}>By income</button><button className={basis === 'equal' ? 'on' : ''} onClick={() => setBasis('equal')}>Equal</button></div>}>
-      <p style={{ marginBottom: 12 }}>Joint costs this month: <b>{fmt0(ja.outgoings)}</b></p>
+      <p style={{ marginBottom: 12 }}>Joint costs this month: <b>{fmt0(ja.outgoings)}</b>
+        {(() => { const paid = ja.rows.reduce((s, r) => s + r.paidIn, 0); const d = paid - ja.outgoings; return Math.abs(d) > 2000 ? <span className="mute"> · paid in {fmt0(paid)}, so {d > 0 ? `${fmt0(d)} more than the costs (it stays in the account)` : `${fmt0(-d)} less than the costs`}</span> : null; })()}</p>
       <table className="table">
         <thead><tr><th>Person</th><th className="num">Paid in</th><th className="num">Fair share</th><th className="num">Difference</th><th className="num hide-s">Own spending</th></tr></thead>
         <tbody>{ja.rows.map((r) => (

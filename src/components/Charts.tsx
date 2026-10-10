@@ -58,10 +58,10 @@ export function Line({ points }: { points: { date: string; net: number }[] }) {
       <path d={d} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinejoin="round" />
       {points.map((p) => <circle key={p.date} cx={X(Date.parse(p.date))} cy={Y(p.net)} r="3.5" fill="var(--bg)" stroke="var(--accent)" strokeWidth="2"><title>{`${p.date}: ${fmt0(p.net)}`}</title></circle>)}
     </svg>
-    <div className="row between note" style={{ marginTop: 8 }}>
-      <span>{first.date} · {fmt0(first.net)}</span>
-      <span className={last.net >= first.net ? 'pos' : 'neg'}>{last.net >= first.net ? '▲' : '▼'} {fmt0(Math.abs(last.net - first.net))}</span>
-      <span>{last.date} · {fmt0(last.net)}</span>
+    <div className="trend-labels note">
+      <span>{first.date}<br />{fmt0(first.net)}</span>
+      <span className="end">{last.date}<br />{fmt0(last.net)}</span>
+      <span className={`chg ${last.net >= first.net ? 'pos' : 'neg'}`}>{last.net >= first.net ? '▲' : '▼'} {fmt0(Math.abs(last.net - first.net))} over this period</span>
     </div>
     </>
   );

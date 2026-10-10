@@ -36,7 +36,7 @@ export function demoVault(endMonth = '2026-09'): Vault {
     { id: 'a12', name: 'Maya — Junior ISA', bank: 'other', kind: 'jisa', ownerId: 'm3', rate: 4.1, balances: [
       { date: `${addMonths(endMonth, -5)}-28`, pence: 310000 }, { date: `${endMonth}-28`, pence: 342000 }] },
     { id: 'a13', name: 'Maya — savings pot', bank: 'monzo', kind: 'savings', ownerId: 'm3', rate: 2.0, balances: [{ date: `${endMonth}-28`, pence: 82000 }] },
-    { id: 'a11', name: 'Family home (estimate)', bank: 'other', kind: 'property', ownerId: 'joint', balances: [{ date: `${endMonth}-28`, pence: 34500000 }] },
+    { id: 'a11', name: 'Family home (estimate)', bank: 'other', kind: 'property', ownerId: 'joint', balances: [{ date: `${addMonths(endMonth, -5)}-28`, pence: 34000000 }, { date: `${endMonth}-28`, pence: 34500000 }] },
     { id: 'a8', name: 'Mortgage', bank: 'other', kind: 'mortgage', ownerId: 'joint', rate: 4.2, monthly: 112000, fixedUntil: '2027-01-31', balances: [
       { date: `${addMonths(endMonth, -5)}-28`, pence: 21540000 }, { date: `${endMonth}-28`, pence: 21280000 }] },
     { id: 'a9', name: 'Rewards credit card', bank: 'other', kind: 'credit-card', ownerId: 'm2', rate: 24.9, limit: 400000, monthly: 6000, balances: [

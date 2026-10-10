@@ -216,3 +216,9 @@ label.row > input[type=checkbox] { flex: none; margin-top: 4px; }
   .table .cat-col { display: none; }
   .table select.only-s { display: block; max-width: 100%; width: 100%; margin-top: 6px; }
 }
+
+.seg button { white-space: nowrap; }
+@media (max-width: 860px) { .card h2 { flex-wrap: wrap; } }
+.trend-labels { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; margin-top: 8px; }
+.trend-labels .end { text-align: right; }
+.trend-labels .chg { grid-column: 1 / -1; text-align: center; }

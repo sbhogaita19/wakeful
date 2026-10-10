@@ -30,6 +30,10 @@ export function Income() {
           return <Card key={m.id}><div className="stat"><div className="label">{m.name}</div><div className="val">{t ? fmt0(t) : '—'}</div></div></Card>;
         }).slice(0, 2)}
       </div>
+      {v.household.members.map((m) => {
+        const mine = v.payslips.filter((p) => p.memberId === m.id).sort((a, b) => b.date.localeCompare(a.date));
+        return mine.length ? <Breakdown key={m.id} name={m.name} slips={mine} /> : null;
+      })}
       <Card title="Payslips">
         {v.payslips.length ? [...v.payslips].sort((a, b) => b.date.localeCompare(a.date)).map((p) => {
           const warn = taxSanity(p);
@@ -91,5 +95,40 @@ function PayslipEditor({ p, isNew, onSave, onDelete, onClose }: { p: Payslip; is
       <div className="row between">{!isNew ? <button className="btn danger" onClick={onDelete}>Delete</button> : <span />}
         <button className="btn primary" disabled={!net} onClick={() => onSave({ id: p.id, ...d, ...parts, net })}>Save</button></div>
     </Modal>
+  );
+}
+
+const PARTS: { k: 'net' | 'tax' | 'ni' | 'pension' | 'studentLoan' | 'otherDeductions'; l: string; c: string }[] = [
+  { k: 'net', l: 'Take-home', c: 'var(--good)' }, { k: 'tax', l: 'Income tax', c: 'var(--bad)' }, { k: 'ni', l: 'National Insurance', c: 'var(--warn)' },
+  { k: 'pension', l: 'Pension', c: 'var(--info)' }, { k: 'studentLoan', l: 'Student loan', c: 'var(--accent)' }, { k: 'otherDeductions', l: 'Other', c: 'var(--dim)' },
+];
+
+/** Where each person's gross pay goes, from their latest payslip, with averages. */
+function Breakdown({ name, slips }: { name: string; slips: Payslip[] }) {
+  const p = slips[0];
+  const recent = slips.slice(0, 6);
+  const avg = (f: (x: Payslip) => number) => Math.round(recent.reduce((s, x) => s + f(x), 0) / recent.length);
+  const gross = p.gross || 1;
+  const deductions = p.tax + p.ni + p.pension + p.studentLoan + p.otherDeductions;
+  return (
+    <Card title={`${name}’s pay`} sub={`${fmtDate(p.date)} · ${p.employer || 'employer'}`}>
+      <div style={{ display: 'flex', height: 14, marginBottom: 16, gap: 2 }} role="img" aria-label="How gross pay is split">
+        {PARTS.map((x) => (p[x.k] > 0 ? <i key={x.k} title={`${x.l} ${fmt(p[x.k])}`} style={{ flex: p[x.k] / gross, background: x.c, display: 'block' }} /> : null))}
+      </div>
+      <table className="table">
+        <thead><tr><th>Where it goes</th><th className="num">This slip</th><th className="num">% of gross</th><th className="num hide-s">Avg ({recent.length})</th></tr></thead>
+        <tbody>
+          <tr><td>Gross pay</td><td className="num">{fmt(p.gross)}</td><td className="num">100%</td><td className="num hide-s">{fmt(avg((x) => x.gross))}</td></tr>
+          {PARTS.filter((x) => p[x.k] > 0 || x.k === 'net').map((x) => (
+            <tr key={x.k}><td><i className="dot" style={{ background: x.c }} /> {x.l}</td><td className="num">{fmt(p[x.k])}</td>
+              <td className="num">{((p[x.k] / gross) * 100).toFixed(1)}%</td><td className="num hide-s">{fmt(avg((s) => s[x.k]))}</td></tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="note" style={{ marginTop: 12 }}>
+        {fmt0(deductions)} ({((deductions / gross) * 100).toFixed(0)}%) is deducted before you see it — {((((p.tax + p.ni) / gross) * 100)).toFixed(0)}% is tax and NI.
+        On this pay, about {fmt0(p.gross * 12)} a year gross and {fmt0(p.net * 12)} a year take-home.
+      </p>
+    </Card>
   );
 }

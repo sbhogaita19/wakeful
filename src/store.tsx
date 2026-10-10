@@ -31,6 +31,7 @@ interface Ctx {
   undoImport: () => void;
   dismissReport: () => void;
   moveBatch: (batch: string, accountId: string) => void;
+  reassignPayslip: (id: string, memberId: string) => void;
 }
 
 const C = createContext<Ctx>(null as never);
@@ -135,6 +136,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     undoImport: () => { if (before.current) { const b = before.current; update(() => b); before.current = null; } setReport(null); },
     dismissReport: () => setReport(null),
     moveBatch: (batch, accountId) => update((x) => ({ ...x, txns: x.txns.map((t) => (t.batch === batch ? { ...t, accountId } : t)) })),
+    reassignPayslip: (id, memberId) => update((x) => ({ ...x, payslips: x.payslips.map((p) => (p.id === id ? { ...p, memberId } : p)) })),
     lock,
     exit: () => { setDemo(false); setVault(emptyVault()); vs.hasVault().then((h) => setPhase(h ? 'locked' : 'new')); },
     restore: async (text) => { await vs.importBackup(text); setPhase('locked'); },

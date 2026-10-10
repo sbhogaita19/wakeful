@@ -6,7 +6,7 @@ import type { ViewProps } from '../nav';
 const KIND_LABEL = { statement: 'Bank statement', payslip: 'Payslip', bill: 'Bill', unknown: 'Unrecognised' } as const;
 
 export function Import({ go }: ViewProps) {
-  const { vault: v, ingestFiles, busy, report, undoImport, dismissReport, moveBatch } = useStore();
+  const { vault: v, ingestFiles, busy, report, undoImport, dismissReport, moveBatch, reassignPayslip } = useStore();
   const [hot, setHot] = useState(false);
   const accts = v.accounts.filter((a) => ['current', 'credit-card', 'savings'].includes(a.kind));
 
@@ -34,6 +34,11 @@ export function Import({ go }: ViewProps) {
           {report.files.map((f, i) => (
             <div className="li" key={i}>
               <div><div className="t">{f.name}</div><div className={`s ${f.ok ? '' : 'warn'}`}>{KIND_LABEL[f.kind]} · {f.message}</div></div>
+              {f.payslipId && v.household.members.length > 1 && (
+                <select defaultValue={f.memberId} onChange={(e) => reassignPayslip(f.payslipId!, e.target.value)} style={{ width: 'auto', maxWidth: 200 }} aria-label="Whose payslip">
+                  {v.household.members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                </select>
+              )}
               {f.batch && f.accountId && accts.length > 1 && (
                 <select value={f.accountId} onChange={(e) => moveBatch(f.batch!, e.target.value)} style={{ width: 'auto', maxWidth: 200 }} aria-label="Move to account">
                   {accts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}

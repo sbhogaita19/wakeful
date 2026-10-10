@@ -10,7 +10,7 @@ import { uid } from './money';
 
 export type DocKind = 'statement' | 'payslip' | 'bill' | 'unknown';
 
-export interface FileResult { name: string; kind: DocKind; ok: boolean; message: string; batch?: string; accountId?: string; }
+export interface FileResult { name: string; kind: DocKind; ok: boolean; message: string; batch?: string; accountId?: string; payslipId?: string; memberId?: string; }
 export interface Report {
   files: FileResult[];
   txns: number; dupes: number; review: number;
@@ -102,12 +102,20 @@ function addStatement(v: Vault, name: string, bank: Bank, rows: (ParsedRow & { r
 function addPayslip(v: Vault, name: string, lines: string[], report: Report): { v: Vault; res: FileResult } {
   const g = parsePayslipLines(lines);
   if (!g.gross || !g.net) return { v, res: { name, kind: 'payslip', ok: false, message: 'Looks like a payslip but I couldn’t read the gross and net pay. Add it in Income.' } };
-  const member = v.household.members[0];
+  // Whose payslip? Match a name on the slip, else the same employer as an earlier slip, else the first person.
+  const text = lines.join(' ').toLowerCase();
+  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const byName = v.household.members.filter((m) => m.name.trim().length >= 3 && new RegExp(`\\b${esc(m.name.trim().toLowerCase())}\\b`).test(text));
+  const prev = g.employer ? v.payslips.find((x) => x.employer.toLowerCase() === g.employer!.toLowerCase()) : undefined;
+  const found = byName.length === 1 ? byName[0] : prev ? v.household.members.find((m) => m.id === prev.memberId) : undefined;
+  const member = found ?? v.household.members[0];
+  const guessed = !found && v.household.members.length > 1;
   const p: Payslip = { id: uid(), memberId: member.id, date: g.date ?? todayISO(), employer: g.employer ?? '', gross: g.gross, tax: g.tax ?? 0, ni: g.ni ?? 0,
     pension: g.pension ?? 0, studentLoan: g.studentLoan ?? 0, otherDeductions: Math.max(0, g.gross - (g.tax ?? 0) - (g.ni ?? 0) - (g.pension ?? 0) - (g.studentLoan ?? 0) - g.net), net: g.net };
   if (v.payslips.some((x) => x.memberId === p.memberId && x.date === p.date && x.net === p.net)) return { v, res: { name, kind: 'payslip', ok: true, message: 'Payslip already added' } };
   report.payslips++;
-  return { v: { ...v, payslips: [...v.payslips, p] }, res: { name, kind: 'payslip', ok: true, message: `Payslip added for ${member.name} (take-home ${(g.net / 100).toFixed(2)})` } };
+  return { v: { ...v, payslips: [...v.payslips, p] }, res: { name, kind: 'payslip', ok: true, payslipId: p.id, memberId: member.id,
+    message: `Payslip added for ${member.name} (take-home £${(g.net / 100).toFixed(2)})${guessed ? ' — couldn’t tell whose it is, please check' : ''}` } };
 }
 
 function addBill(v: Vault, name: string, lines: string[], report: Report): { v: Vault; res: FileResult } {

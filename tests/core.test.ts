@@ -260,3 +260,16 @@ describe('automatic ingest', () => {
     expect(syncBills(ended).bills.filter((b) => /octopus/i.test(b.provider))).toHaveLength(1);
   });
 });
+
+describe('payslip owner', () => {
+  it('assigns by name on the slip and by employer later', async () => {
+    const v0 = { ...emptyVault(), household: { ...emptyVault().household, members: [{ id: 'm1', name: 'Asha' }, { id: 'm2', name: 'Ben' }] } };
+    const slip = (who: string, net: string) => file(`${who}.txt`, `Employee: ${who} Rivers\nEmployer: Northern Health Trust\nPay date 25/09/2026\nGross Pay 3,667.00\nIncome Tax 471.00\nNational Insurance 238.00\nNet Pay ${net}\n`);
+    const a = await ingest(v0, [slip('Ben', '2,890.00')]);
+    expect(a.vault.payslips[0].memberId).toBe('m2');
+    // an unnamed slip from the same employer follows the earlier one
+    const noName = file('x.txt', 'Employer: Northern Health Trust\nPay date 25/10/2026\nGross Pay 3,667.00\nIncome Tax 471.00\nNational Insurance 238.00\nNet Pay 2,958.00\n');
+    const b = await ingest(a.vault, [noName]);
+    expect(b.vault.payslips.find((p) => p.date === '2026-10-25')!.memberId).toBe('m2');
+  });
+});

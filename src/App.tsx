@@ -13,6 +13,7 @@ import { Import } from './views/Import';
 import { Settings } from './views/Settings';
 
 import type { Tab } from './nav';
+import { isDark, setPref } from './theme';
 
 const MAIN: { t: Tab; l: string; i: string }[] = [
   { t: 'home', l: 'Home', i: 'home' },
@@ -32,6 +33,7 @@ export function App() {
   const s = useStore();
   const [tab, setTab] = useState<Tab>('home');
   const [more, setMore] = useState(false);
+  const [, setTick] = useState(0);
 
   if (s.phase === 'loading') return <div className="center"><Logo /></div>;
   if (s.phase !== 'open') return <Onboarding />;
@@ -47,6 +49,7 @@ export function App() {
         <div className="eyebrow" style={{ padding: '16px 11px 6px' }}>Household</div>
         {MORE.map((n) => <button key={n.t} className={`navbtn ${tab === n.t ? 'on' : ''}`} onClick={() => go(n.t)}><Icon n={n.i} />{n.l}</button>)}
         <div className="grow" />
+        <button className="navbtn" onClick={() => { setPref(isDark() ? 'light' : 'dark'); setTick((x) => x + 1); }}><Icon n={isDark() ? 'sun' : 'moon'} />{isDark() ? 'Light mode' : 'Dark mode'}</button>
         <button className="navbtn" onClick={s.demo ? s.exit : s.lock}><Icon n="lock" />{s.demo ? 'Leave demo' : 'Lock'}</button>
       </nav>
       <main className="main">

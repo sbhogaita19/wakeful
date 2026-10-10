@@ -17,6 +17,8 @@ const P: Record<string, string> = {
   trash: 'M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13',
   edit: 'M4 20h4L19 9l-4-4L4 16z',
   check: 'm5 12 5 5 9-10',
+  sun: 'M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 3v2M12 19v2M5 5l1.4 1.4M17.6 17.6 19 19M3 12h2M19 12h2M5 19l1.4-1.4M17.6 6.4 19 5',
+  moon: 'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z',
 };
 export function Icon({ n }: { n: keyof typeof P | string }) {
   return (
@@ -26,5 +28,5 @@ export function Icon({ n }: { n: keyof typeof P | string }) {
   );
 }
 export const Logo = () => (
-  <svg viewBox="0 0 64 64" aria-hidden><rect width="64" height="64" rx="16" fill="#121721" /><circle cx="32" cy="32" r="17" fill="none" stroke="#5ad1b4" strokeWidth="4" /><circle cx="32" cy="32" r="5" fill="#e6c27a" /></svg>
+  <svg viewBox="0 0 64 64" aria-hidden><rect width="64" height="64" rx="16" fill="#0b0e13" /><circle cx="32" cy="32" r="17" fill="none" stroke="#5ad1b4" strokeWidth="4" /><circle cx="32" cy="32" r="5" fill="#e6c27a" /></svg>
 );

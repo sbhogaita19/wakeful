@@ -4,6 +4,7 @@ import { Card, Field, Head } from '../components/ui';
 import { exportBackup, updatePassphrase } from '../lib/vaultStore';
 import { passphraseProblem } from '../lib/crypto';
 import { uid } from '../lib/money';
+import { getPref, setPref, type ThemePref } from '../theme';
 
 export function Settings() {
   const { vault: v, update, demo, wipeAll, lock } = useStore();
@@ -11,6 +12,7 @@ export function Settings() {
   const [newP, setNewP] = useState('');
   const [msg, setMsg] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [theme, setTheme] = useState<ThemePref>(getPref());
 
   const backup = async () => {
     const blob = new Blob([await exportBackup()], { type: 'application/json' });
@@ -36,6 +38,11 @@ export function Settings() {
               <button className="btn sm" onClick={() => update((x) => ({ ...x, household: { ...x.household, properties: [...x.household.properties, { id: uid(), name: 'Another property' }] } }))}>Add property</button></div>
           </div>
         </div>
+      </Card>
+
+      <Card title="Appearance">
+        <Field label="Theme"><select value={theme} onChange={(e) => { const t = e.target.value as ThemePref; setTheme(t); setPref(t); }} style={{ maxWidth: 220 }}>
+          <option value="auto">Match my device</option><option value="dark">Dark</option><option value="light">Light (paper)</option></select></Field>
       </Card>
 
       <Card title="Security">

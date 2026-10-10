@@ -93,6 +93,7 @@ export function Settings() {
         </Card>
       )}
       <p className="note">Wakeful gives general information, not financial advice. Open source (MIT).</p>
+      <p className="note mono">Version 0.1.0 · build {typeof __BUILD__ === 'string' ? __BUILD__ : 'dev'}</p>
     </>
   );
 }

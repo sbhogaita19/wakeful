@@ -273,3 +273,55 @@ describe('payslip owner', () => {
     expect(b.vault.payslips.find((p) => p.date === '2026-10-25')!.memberId).toBe('m2');
   });
 });
+
+import { dividendTax, parseTaxCode } from '../src/lib/tax';
+import { earningsSummary, taxCheck, taxYearOf } from '../src/lib/payslip';
+import { dividendSummaries } from '../src/lib/dividends';
+import { jointAnalysis } from '../src/lib/joint';
+describe('dividends, tax code, overtime, joint', () => {
+  it('dividend tax: allowance, basic and higher rate (2026/27)', () => {
+    expect(dividendTax(0, 10000).tax).toBe(0);                                   // inside unused personal allowance
+    expect(dividendTax(12570, 10000).tax).toBeCloseTo(9500 * 0.1075, 2);          // £500 allowance then basic
+    expect(dividendTax(50270, 10000).tax).toBeCloseTo(9500 * 0.3575, 2);          // all in the higher band
+    expect(dividendTax(12570, 10000).band).toBe('basic');
+    expect(dividendTax(50270, 10000).band).toBe('higher');
+  });
+  it('reads tax codes', () => {
+    expect(parseTaxCode('1257L')).toMatchObject({ standard: true, emergency: false });
+    expect(parseTaxCode('1257L W1')).toMatchObject({ emergency: true });
+    expect(parseTaxCode('1060L')).toMatchObject({ standard: false, allowance: 10609 });
+    expect(parseTaxCode('BR')).toMatchObject({ flat: 0.2 });
+    expect(parseTaxCode('K475')?.allowance).toBe(-4750);
+  });
+  it('flags non-standard and emergency codes', () => {
+    const base = { id: '1', memberId: 'a', date: '2026-09-25', employer: '', gross: 366700, tax: 47100, ni: 23800, pension: 0, studentLoan: 0, otherDeductions: 0, net: 295800 };
+    expect(taxCheck({ ...base, taxCode: '1060L' }).problems.join(' ')).toMatch(/isn't the standard 1257L/);
+    expect(taxCheck({ ...base, taxCode: '1257L W1' }).problems.join(' ')).toMatch(/emergency/);
+    expect(taxCheck({ ...base, taxCode: '1257L' }).problems.join(' ')).not.toMatch(/standard/);
+  });
+  it('reads overtime, basic and tax code from a payslip and sums overtime to date', () => {
+    const g = parsePayslipLines(['Tax Code 1257L', 'Basic Pay 3,400.00', 'Overtime 10.00 15.50 155.00', 'Overtime 4.00 22.00 88.00', 'Gross Pay 3,643.00', 'Income Tax 450.00', 'Net Pay 2,900.00']);
+    expect(g).toMatchObject({ taxCode: '1257L', basic: 340000, overtime: 24300, gross: 364300 });
+    const s = earningsSummary([{ id: '1', memberId: 'a', date: '2026-08-25', employer: '', gross: 360000, tax: 0, ni: 0, pension: 0, studentLoan: 0, otherDeductions: 0, net: 0, overtime: 20000 },
+      { id: '2', memberId: 'a', date: '2026-09-25', employer: '', gross: 340000, tax: 0, ni: 0, pension: 0, studentLoan: 0, otherDeductions: 0, net: 0, overtime: 0 }]);
+    expect(s.overtime).toBe(20000);
+    expect(s.avgOvertime).toBe(10000);
+    expect(taxYearOf('2026-09-25')).toEqual(['2026-04-06', '2027-04-05']);
+    expect(taxYearOf('2027-02-01')).toEqual(['2026-04-06', '2027-04-05']);
+  });
+  it('demo household: dividends, tax-code flag, joint contributions', () => {
+    const v = demoVault();
+    const ds = dividendSummaries(v, '2026-10-10');
+    expect(ds).toHaveLength(1);
+    expect(ds[0].name).toBe('Ben');
+    expect(ds[0].estTax).toBeGreaterThan(0);
+    const ids = buildInsights(v, '2026-10-10').map((i) => i.id);
+    expect(ids.some((i) => i.startsWith('tax-'))).toBe(true);
+    expect(ids).toContain('ot-m2');
+    expect(ids).toContain('div-m2');
+    const ja = jointAnalysis(v, '2026-09')!;
+    expect(ja.rows.find((r) => r.name === 'Ben')!.paidIn).toBe(190000);
+    expect(ja.rows.find((r) => r.name === 'Asha')!.paidIn).toBe(150000);
+    expect(ja.rows.reduce((s, r) => s + r.fair, 0)).toBeGreaterThan(ja.outgoings - 5);
+  });
+});

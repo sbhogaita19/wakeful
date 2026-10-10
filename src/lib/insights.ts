@@ -2,7 +2,9 @@ import { BENCH } from './benchmarks';
 import { avgSpendByCategory, homeEquity, householdIncome, latestBalance, latestMonth, netWorth, recurring, spendByCategory, totalSpend, months as monthsOf } from './analytics';
 import { addMonths, daysUntil, todayISO, ym } from './dates';
 import { fmt0 } from './money';
-import { taxSanity } from './payslip';
+import { earningsSummary, taxCheck } from './payslip';
+import { dividendSummaries, unassignedDividends } from './dividends';
+import { jointAnalysis } from './joint';
 import { activeBills, isLiability, type Vault } from '../types';
 import { merchantKey } from './categorise';
 
@@ -210,11 +212,44 @@ export function buildInsights(v: Vault, today = todayISO()): Insight[] {
 
   // ---- Payslips
   for (const p of v.payslips.slice().sort((a, b) => b.date.localeCompare(a.date)).slice(0, 2)) {
-    const m = taxSanity(p);
-    if (m) out.push({ id: `tax-${p.id}`, area: 'income', severity: 'medium', title: `Payslip ${p.date}: check your tax`, detail: m });
+    const tc = taxCheck(p);
+    if (tc.problems.length) out.push({ id: `tax-${p.id}`, area: 'income', severity: tc.problems.some((x) => /emergency|looks low/.test(x)) ? 'high' : 'medium',
+      title: `${v.household.members.find((x) => x.id === p.memberId)?.name ?? 'Payslip'} — ${p.date}: check your tax${p.taxCode ? ` (code ${p.taxCode})` : ''}`, detail: `${tc.problems.join(' ')} Indicative only.` });
     const rate = p.gross ? p.pension / p.gross : 0;
     if (p.gross > 150000 && rate < 0.05) out.push({ id: `pen-${p.id}`, area: 'saving', severity: 'medium', title: 'Pension contribution looks low',
       detail: `You contribute about ${(rate * 100).toFixed(1)}% of gross. Ask whether your employer matches higher contributions — it is free money.` });
+  }
+
+  // ---- Overtime reliance, dividends and joint-account fairness
+  for (const m of v.household.members) {
+    const slips = v.payslips.filter((x) => x.memberId === m.id).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
+    const e = earningsSummary(slips);
+    if (e.slips >= 3 && e.overtimeShare > 0.1)
+      out.push({ id: `ot-${m.id}`, area: 'income', severity: 'info', title: `${Math.round(e.overtimeShare * 100)}% of ${m.name}’s pay is overtime`,
+        detail: `${fmt0(e.overtime)} over the last ${e.slips} payslips, about ${fmt0(e.avgOvertime)} a month. Take-home swings by ${fmt0(e.swing)} — budget fixed costs from basic pay and treat overtime as a bonus.` });
+  }
+  for (const d of dividendSummaries(v, today)) {
+    if (d.estTax > 0)
+      out.push({ id: `div-${d.memberId}`, area: 'income', severity: d.deadline.days >= 0 && d.deadline.days < 120 ? 'medium' : 'info',
+        title: `${d.name}: set aside about ${fmt0(d.estTax)} (${d.setAsidePct}%) of dividends for tax`,
+        detail: `Estimated ${d.taxYear} dividend tax at the ${d.band} rate on ~${fmt0(d.projected)} of dividends. ${d.deadline.label} — ${d.deadline.days >= 0 ? `${d.deadline.days} days away` : 'now due'}. Keep this in a separate savings pot so it isn’t spent.`, yearly: 0 });
+    else if (d.projected > 0)
+      out.push({ id: `div-${d.memberId}`, area: 'income', severity: 'info', title: `${d.name}: dividends look within the tax-free allowance`, detail: `About ${fmt0(d.projected)} projected; the first £500 is tax-free and any unused personal allowance applies too.` });
+  }
+  if (unassignedDividends(v) > 0)
+    out.push({ id: 'div-unassigned', area: 'income', severity: 'info', title: 'Dividends paid into a joint account',
+      detail: 'Tell Wakeful whose they are (Spending → Transactions → click the dividend → Whose) so the right person’s tax is estimated.' });
+  if (cur) {
+    const ja = jointAnalysis(v, cur);
+    if (ja && ja.outgoings > 0 && ja.rows.some((r) => r.paidIn > 0)) {
+      const gap = (r: { paidShare: number; incomeShare: number }) => r.paidShare - r.incomeShare;
+      const sorted = [...ja.rows].sort((x, y) => gap(y) - gap(x));
+      const hi = sorted[0], lo = sorted[sorted.length - 1];
+      if (gap(hi) > 0.1) {
+        out.push({ id: 'joint-fair', area: 'spending', severity: 'info', title: `Joint account: ${hi.name} puts in more than their share of income`,
+          detail: `${hi.name} pays in ${Math.round(hi.paidShare * 100)}% of the money but earns ${Math.round(hi.incomeShare * 100)}% of household take-home; ${lo.name} pays in ${Math.round(lo.paidShare * 100)}% on ${Math.round(lo.incomeShare * 100)}% of income. Splitting in proportion to income is one fair option, an equal split is another — your choice.` });
+      }
+    }
   }
 
   // ---- Giving (values)

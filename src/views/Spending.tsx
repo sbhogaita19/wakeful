@@ -131,6 +131,7 @@ function TxnEditor({ t, onClose }: { t: Txn; onClose: () => void }) {
   const [cat, setCat] = useState(t.category);
   const [note, setNote] = useState(t.note ?? '');
   const [all, setAll] = useState(true);
+  const [who, setWho] = useState(t.memberId ?? '');
   const count = v.txns.filter((x) => merchantKey(x.desc) === key).length;
   const save = () => {
     const n = label.trim();
@@ -139,7 +140,7 @@ function TxnEditor({ t, onClose }: { t: Txn; onClose: () => void }) {
       if (all) { if (!n || n === t.desc) delete aliases[key]; else aliases[key] = n; }
       const rules = all && cat !== t.category ? learnRule(x.rules, t.desc, cat) : x.rules;
       const txns = x.txns.map((y) => {
-        if (y.id === t.id) return { ...y, category: cat, note: note.trim() || undefined, review: false };
+        if (y.id === t.id) return { ...y, category: cat, note: note.trim() || undefined, review: false, memberId: who || undefined };
         if (all && !y.transfer && merchantKey(y.desc) === key) return { ...y, category: cat };
         return y;
       });
@@ -153,6 +154,7 @@ function TxnEditor({ t, onClose }: { t: Txn; onClose: () => void }) {
       <Field label="Name to show"><input value={label} onChange={(e) => setLabel(e.target.value)} /></Field>
       <Field label="Category"><select value={cat} onChange={(e) => setCat(e.target.value)}>{allCategories(v).map((c) => <option key={c}>{c}</option>)}</select></Field>
       {v.categoryNotes?.[cat] && <div className="note">{cat}: {v.categoryNotes[cat]}</div>}
+      {cat === 'Dividends' && <Field label="Whose dividend?"><select value={who} onChange={(e) => setWho(e.target.value)}><option value="">Account owner</option>{v.household.members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></Field>}
       <Field label="Note (this transaction only)"><textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. annual alarm service" /></Field>
       <label className="row note" style={{ gap: 8 }}><input type="checkbox" style={{ width: 'auto' }} checked={all} onChange={(e) => setAll(e.target.checked)} />Apply name and category to all {count} from this merchant, including future imports</label>
       <div className="row between"><button className="btn ghost" onClick={onClose}>Cancel</button><button className="btn primary" onClick={save}>Save</button></div>

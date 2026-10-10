@@ -4,7 +4,10 @@ import { Card, Empty, Field, Head, Modal } from '../components/ui';
 import { Icon } from '../components/Icon';
 import { fmt, fmt0, parseMoney, uid } from '../lib/money';
 import { fmtDate, todayISO } from '../lib/dates';
-import { impliedNet, parsePayslipLines, takeHome, taxSanity } from '../lib/payslip';
+import { earningsSummary, impliedNet, parsePayslipLines, takeHome, taxCheck, taxYearOf } from '../lib/payslip';
+import { dividendSummaries, unassignedDividends } from '../lib/dividends';
+import { jointAnalysis, personalSpend } from '../lib/joint';
+import { latestMonth } from '../lib/analytics';
 import type { Payslip } from '../types';
 
 const F: { k: keyof Payslip; l: string }[] = [
@@ -34,9 +37,11 @@ export function Income() {
         const mine = v.payslips.filter((p) => p.memberId === m.id).sort((a, b) => b.date.localeCompare(a.date));
         return mine.length ? <Breakdown key={m.id} name={m.name} slips={mine} /> : null;
       })}
+      <Dividends />
+      <Joint />
       <Card title="Payslips">
         {v.payslips.length ? [...v.payslips].sort((a, b) => b.date.localeCompare(a.date)).map((p) => {
-          const warn = taxSanity(p);
+          const warn = taxCheck(p).problems.join(' ');
           return (
             <div className="li" key={p.id} style={{ cursor: 'pointer' }} onClick={() => setEdit(p)}>
               <div><div className="t">{name(p.memberId)} · {p.employer || 'Employer'}</div>
@@ -58,6 +63,7 @@ function PayslipEditor({ p, isNew, onSave, onDelete, onClose }: { p: Payslip; is
   const { vault: v } = useStore();
   const [d, setD] = useState({ memberId: p.memberId, date: p.date, employer: p.employer });
   const [n, setN] = useState<Record<string, string>>(Object.fromEntries(F.map((f) => [f.k, p[f.k] ? ((p[f.k] as number) / 100).toFixed(2) : ''])));
+  const [extra, setExtra] = useState({ basic: p.basic ? (p.basic / 100).toFixed(2) : '', overtime: p.overtime ? (p.overtime / 100).toFixed(2) : '', bonus: p.bonus ? (p.bonus / 100).toFixed(2) : '', taxCode: p.taxCode ?? '' });
   const [msg, setMsg] = useState('');
   const val = (k: string) => parseMoney(n[k] ?? '') ?? 0;
   const parts = { gross: val('gross'), tax: val('tax'), ni: val('ni'), pension: val('pension'), studentLoan: val('studentLoan'), otherDeductions: val('otherDeductions') };
@@ -75,6 +81,7 @@ function PayslipEditor({ p, isNew, onSave, onDelete, onClose }: { p: Payslip; is
       const g = parsePayslipLines(lines);
       setN((x) => { const o = { ...x }; for (const f of F) if (g[f.k] !== undefined) o[f.k] = ((g[f.k] as number) / 100).toFixed(2); return o; });
       setD((x) => ({ ...x, date: g.date ?? x.date, employer: g.employer ?? x.employer }));
+      setExtra((x) => ({ basic: g.basic ? (g.basic / 100).toFixed(2) : x.basic, overtime: g.overtime ? (g.overtime / 100).toFixed(2) : x.overtime, bonus: g.bonus ? (g.bonus / 100).toFixed(2) : x.bonus, taxCode: g.taxCode ?? x.taxCode }));
       setMsg(`Found ${g.found.length} fields — please check them against your payslip.`);
     } catch { setMsg('Could not read that file. Type the figures in instead.'); }
   };
@@ -91,9 +98,16 @@ function PayslipEditor({ p, isNew, onSave, onDelete, onClose }: { p: Payslip; is
         <span />
         {F.map((f) => <Field key={f.k} label={`${f.l} (£)`}><input inputMode="decimal" value={n[f.k]} onChange={(e) => setN({ ...n, [f.k]: e.target.value })} /></Field>)}
       </div>
+      <div className="eyebrow">Optional — earnings and tax code</div>
+      <div className="fgrid">
+        <Field label="Basic pay (£)"><input inputMode="decimal" value={extra.basic} onChange={(e) => setExtra({ ...extra, basic: e.target.value })} /></Field>
+        <Field label="Overtime (£)"><input inputMode="decimal" value={extra.overtime} onChange={(e) => setExtra({ ...extra, overtime: e.target.value })} /></Field>
+        <Field label="Bonus / commission (£)"><input inputMode="decimal" value={extra.bonus} onChange={(e) => setExtra({ ...extra, bonus: e.target.value })} /></Field>
+        <Field label="Tax code"><input value={extra.taxCode} placeholder="e.g. 1257L" onChange={(e) => setExtra({ ...extra, taxCode: e.target.value.toUpperCase() })} /></Field>
+      </div>
       {val('net') > 0 && val('gross') > 0 && Math.abs(diff) > 100 && <div className="note warn">Gross minus deductions is {fmt(impliedNet(parts))}, {fmt(Math.abs(diff))} {diff > 0 ? 'less' : 'more'} than net pay. Add the missing deduction under “other” if there is one.</div>}
       <div className="row between">{!isNew ? <button className="btn danger" onClick={onDelete}>Delete</button> : <span />}
-        <button className="btn primary" disabled={!net} onClick={() => onSave({ id: p.id, ...d, ...parts, net })}>Save</button></div>
+        <button className="btn primary" disabled={!net} onClick={() => onSave({ id: p.id, ...d, ...parts, net, basic: parseMoney(extra.basic) || undefined, overtime: parseMoney(extra.overtime) || undefined, bonus: parseMoney(extra.bonus) || undefined, taxCode: extra.taxCode.trim() || undefined })}>Save</button></div>
     </Modal>
   );
 }
@@ -125,10 +139,87 @@ function Breakdown({ name, slips }: { name: string; slips: Payslip[] }) {
           ))}
         </tbody>
       </table>
+      <Earnings slips={slips} />
+      {taxCheck(p).problems.map((m, i) => <p key={i} className="note warn" style={{ marginTop: 10 }}>⚑ {m}</p>)}
+      {!p.taxCode && <p className="note" style={{ marginTop: 10 }}>No tax code on this payslip — add it (Edit payslip) and Wakeful will check it.</p>}
       <p className="note" style={{ marginTop: 12 }}>
         {fmt0(deductions)} ({((deductions / gross) * 100).toFixed(0)}%) is deducted before you see it — {((((p.tax + p.ni) / gross) * 100)).toFixed(0)}% is tax and NI.
         On this pay, about {fmt0(p.gross * 12)} a year gross and {fmt0(p.net * 12)} a year take-home.
       </p>
+    </Card>
+  );
+}
+
+function Earnings({ slips }: { slips: Payslip[] }) {
+  const [mode, setMode] = useState<'six' | 'year'>('six');
+  const [ys, ye] = taxYearOf(slips[0].date);
+  const set = mode === 'six' ? slips.slice(0, 6) : slips.filter((x) => x.date >= ys && x.date <= ye);
+  const e = earningsSummary(set);
+  const any = e.overtime > 0 || e.bonus > 0;
+  return (
+    <div style={{ marginTop: 16 }}>
+      <div className="row between"><div className="eyebrow">Earnings to date</div>
+        <div className="seg"><button className={mode === 'six' ? 'on' : ''} onClick={() => setMode('six')}>Last 6</button><button className={mode === 'year' ? 'on' : ''} onClick={() => setMode('year')}>Tax year</button></div></div>
+      <table className="table" style={{ marginTop: 8 }}>
+        <tbody>
+          <tr><td>Payslips counted</td><td className="num">{e.slips}</td></tr>
+          <tr><td>Gross to date</td><td className="num">{fmt(e.gross)}</td></tr>
+          <tr><td>Basic pay</td><td className="num">{fmt(e.basic)}</td></tr>
+          <tr><td>Overtime to date</td><td className="num">{fmt(e.overtime)}{e.gross ? ` · ${(e.overtimeShare * 100).toFixed(0)}%` : ''}</td></tr>
+          {e.bonus > 0 && <tr><td>Bonus / commission</td><td className="num">{fmt(e.bonus)}</td></tr>}
+          <tr><td>Average overtime per payslip</td><td className="num">{fmt(e.avgOvertime)}</td></tr>
+        </tbody>
+      </table>
+      {!any && <p className="note" style={{ marginTop: 6 }}>No overtime recorded. If you do overtime, drop a payslip PDF (it’s read automatically) or add it when you edit a payslip.</p>}
+      {any && e.swing > 0 && <p className="note" style={{ marginTop: 6 }}>Take-home varies by {fmt0(e.swing)} between payslips. Budget your fixed costs from basic pay.</p>}
+    </div>
+  );
+}
+
+function Dividends() {
+  const { vault: v, update } = useStore();
+  const list = dividendSummaries(v);
+  const un = unassignedDividends(v);
+  if (!list.length && !un) return null;
+  return (
+    <>
+      {list.map((d) => (
+        <Card key={d.memberId} title={`${d.name}’s dividends`} sub={`tax year ${d.taxYear}`}>
+          <div className="grid g3">
+            <div className="stat"><div className="label">Received so far</div><div className="val">{fmt0(d.ytd)}</div><div className="note">projected {fmt0(d.projected)} for the year</div></div>
+            <div className="stat"><div className="label">Estimated tax</div><div className="val warn">{fmt0(d.estTax)}</div><div className="note">{d.estTax > 0 ? `${d.band} rate · set aside ${d.setAsidePct}%` : 'within allowances'}</div></div>
+            <div className="stat"><div className="label">After dividend tax</div><div className="val pos">{fmt0(d.net)}</div><div className="note">per year, projected</div></div>
+          </div>
+          <p className="note" style={{ marginTop: 14 }}>
+            {d.deadline.label}: {d.deadline.days >= 0 ? `${d.deadline.days} days away` : 'due now'}. Dividend tax isn’t taken by your employer — keep the set-aside amount in a separate pot.
+            Based on 2026/27 rates (£500 allowance; 10.75% / 35.75% / 39.35%) and {d.other ? `salary of about ${fmt0(d.other)} a year` : 'no salary on file (add a payslip for a better estimate)'}.
+          </p>
+        </Card>
+      ))}
+      {un > 0 && <Card title="Dividends to assign"><p className="note">{fmt0(un)} of dividends went into a joint account. Open Spending → Transactions, click the dividend and choose whose it is.</p></Card>}
+      <p className="note">This estimates <b>personal</b> dividend tax only. Corporation tax, director’s loan accounts and the company’s own books belong in accounting software such as Xero or Sage; an accountant should confirm the figures.</p>
+    </>
+  );
+}
+
+function Joint() {
+  const { vault: v, month } = useStore();
+  const [basis, setBasis] = useState<'income' | 'equal'>('income');
+  const m = month || latestMonth(v.txns) || '';
+  const ja = m ? jointAnalysis(v, m, basis) : null;
+  if (!ja) return null;
+  const ps = personalSpend(v, m);
+  return (
+    <Card title="Joint account" sub={ja.accounts.join(', ')} action={<div className="seg"><button className={basis === 'income' ? 'on' : ''} onClick={() => setBasis('income')}>By income</button><button className={basis === 'equal' ? 'on' : ''} onClick={() => setBasis('equal')}>Equal</button></div>}>
+      <p style={{ marginBottom: 12 }}>Joint costs this month: <b>{fmt0(ja.outgoings)}</b></p>
+      <table className="table">
+        <thead><tr><th>Person</th><th className="num">Paid in</th><th className="num">Fair share</th><th className="num">Difference</th><th className="num hide-s">Own spending</th></tr></thead>
+        <tbody>{ja.rows.map((r) => (
+          <tr key={r.memberId}><td>{r.name}</td><td className="num">{fmt0(r.paidIn)}</td><td className="num">{fmt0(r.fair)} <span className="mute">({Math.round(r.share * 100)}%)</span></td>
+            <td className={`num ${r.diff < -5000 ? 'warn' : r.diff > 5000 ? 'pos' : ''}`}>{r.diff >= 0 ? '+' : '−'}{fmt0(Math.abs(r.diff))}</td>
+            <td className="num hide-s">{fmt0(ps.find((x) => x.memberId === r.memberId)?.spend ?? 0)}</td></tr>))}</tbody>
+      </table>
+      <p className="note" style={{ marginTop: 10 }}>Contributions are matched from transfers out of each person’s own account and salary paid straight in. {ja.unattributed > 0 ? `${fmt0(ja.unattributed)} of other money in couldn’t be matched to a person. ` : ''}“By income” shares costs in proportion to take-home pay; “Equal” splits them evenly. Neither is right or wrong — it’s a fairness conversation, not a rule.</p>
     </Card>
   );
 }

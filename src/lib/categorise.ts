@@ -1,7 +1,8 @@
 import type { Rule, Txn } from '../types';
 
 const K: [RegExp, string][] = [
-  [/\b(salary|wages|payroll|dividend|child benefit|hmrc (tax )?refund|interest paid|gross interest)\b/i, 'Income'],
+  [/\b(dividends?|div payment|div\.? pmt)\b/i, 'Dividends'],
+  [/\b(salary|wages|payroll|child benefit|hmrc (tax )?refund|interest paid|gross interest)\b/i, 'Income'],
   [/\b(oxfam|british red cross|cancer research|macmillan|unicef|wateraid|shelter|save the children|charity|just ?giving|donation|temple|buddhist|dana|age uk|rspca|wwf|greenpeace|barnardo|marie curie|oxfam|msf|doctors without borders|samaritans)\b/i, 'Giving'],
   [/\b(mortgage|rent|council tax|landlord|letting|ground rent|service charge)\b/i, 'Housing'],
   [/\b(credit card|barclaycard|mbna|capital one|amex|american express|loan repayment|klarna|clearpay|paypal credit|student loan|santander cards)\b/i, 'Debt payments'],

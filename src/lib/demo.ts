@@ -86,6 +86,11 @@ export function demoVault(endMonth = '2026-09'): Vault {
     if (i === 1) add('a1', d(23), 'RYANAIR', -42000);
     if (i === 3) add('a1', d(23), 'BOOKING.COM', -61000);
     if (i % 2 === 1) add('a3', d(26), 'CARD INTEREST CHARGED', -jit(3100, 0.1));
+    add('a2', d(27), 'TRANSFER TO JOINT ACCOUNT', -150000);
+    add('a1', d(27), 'TRANSFER FROM ASHA', 150000);
+    add('a3', d(27), 'TRANSFER TO JOINT ACCOUNT', -190000);
+    add('a1', d(27), 'TRANSFER FROM BEN', 190000);
+    if (i === 3 || i === 0) add('a3', d(15), 'SMITH CONSULTING LTD DIVIDEND', 150000);
     add('a1', d(26), 'TRANSFER TO RAINY-DAY SAVINGS', -(i % 2 ? 30000 : 60000));
     add('a4', d(26), 'TRANSFER FROM JOINT', i % 2 ? 30000 : 60000);
     if (i === 0) add('a1', d(4), 'OCTOPUS ENERGY DD', -13400);
@@ -97,12 +102,16 @@ export function demoVault(endMonth = '2026-09'): Vault {
   const ps: Payslip[] = [];
   for (let i = 2; i >= 0; i--) {
     const m = addMonths(endMonth, -i);
-    ps.push(slip(`ps-a-${i}`, 'm1', m, 'Acme Design Ltd', 445800, 63900, 29800, 22300, 342000 - 8000 + 8000));
+    ps.push(slip(`ps-a-${i}`, 'm1', m, 'Acme Design Ltd', 445800, 63900, 25700, 22300, 342000 - 8000 + 8000));
     ps.push(slip(`ps-b-${i}`, 'm2', m, 'Northern Health Trust', 366700, 47100, 23800, 20400, 289000 - 0));
   }
   v.payslips = ps.map((p) => ({ ...p, net: p.gross - p.tax - p.ni - p.pension }));
   // make the demo payslip nets line up with salary credits
   v.payslips.forEach((p) => { p.net = p.memberId === 'm1' ? 342000 : 289000; p.otherDeductions = p.gross - p.tax - p.ni - p.pension - p.net; });
+
+  const ben = v.payslips.filter((p) => p.memberId === 'm2').sort((a, b) => a.date.localeCompare(b.date));
+  [60000, 0, 90000].forEach((o, i) => { if (ben[i]) { ben[i].overtime = o; ben[i].basic = ben[i].gross - o; ben[i].taxCode = '1060L'; } });
+  v.payslips.filter((p) => p.memberId === 'm1').forEach((p) => { p.basic = p.gross; p.taxCode = '1257L'; });
 
   const hist = (a: number, b: number) => [
     { date: `${addMonths(endMonth, -5)}-01`, monthly: a }, { date: `${addMonths(endMonth, -1)}-01`, monthly: b },

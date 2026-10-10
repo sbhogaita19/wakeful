@@ -53,6 +53,8 @@ export interface Txn {
   batch?: string;
   /** your own note on this transaction */
   note?: string;
+  /** whose income this is (dividends paid into a joint account) */
+  memberId?: string;
   /** user's own mindful tag */
   tag?: 'mindful' | 'regret';
 }
@@ -69,6 +71,12 @@ export interface Payslip {
   studentLoan: Pence;
   otherDeductions: Pence;
   net: Pence;
+  /** earnings breakdown (optional) */
+  basic?: Pence;
+  overtime?: Pence;
+  bonus?: Pence;
+  /** e.g. 1257L, BR, 1257L W1 */
+  taxCode?: string;
 }
 
 export type BillKind =
@@ -151,17 +159,17 @@ export const emptyVault = (): Vault => ({
 });
 
 export const CATEGORIES = [
-  'Income', 'Housing', 'Bills', 'Groceries', 'Eating out', 'Transport', 'Subscriptions',
+  'Income', 'Dividends', 'Housing', 'Bills', 'Groceries', 'Eating out', 'Transport', 'Subscriptions',
   'Shopping', 'Health', 'Entertainment', 'Travel', 'Family', 'Giving', 'Debt payments',
   'Fees & interest', 'Cash', 'Savings & transfers', 'Other',
 ] as const;
 export type Category = (typeof CATEGORIES)[number];
 
 /** Categories that are not "spending". */
-export const NON_SPEND = new Set<string>(['Income', 'Savings & transfers']);
+export const NON_SPEND = new Set<string>(['Income', 'Dividends', 'Savings & transfers']);
 
 export const CATEGORY_COLOR: Record<string, string> = {
-  Income: '#4fd1a5', Housing: '#6aa7ff', Bills: '#8b8cff', Groceries: '#7bd88f',
+  Income: '#4fd1a5', Dividends: '#9be3b8', Housing: '#6aa7ff', Bills: '#8b8cff', Groceries: '#7bd88f',
   'Eating out': '#f5b14c', Transport: '#5ec8e5', Subscriptions: '#c58bff',
   Shopping: '#ff8fb1', Health: '#ff7a7a', Entertainment: '#ffd166', Travel: '#4dd0c8',
   Family: '#e0a96d', Giving: '#e6c27a', 'Debt payments': '#ef6f6f', 'Fees & interest': '#ff5d73',

@@ -21,7 +21,7 @@ export const totalSpend = (txns: Txn[], month: string) =>
   Object.values(spendByCategory(txns, month)).reduce((a, b) => a + b, 0);
 
 export function incomeOf(txns: Txn[], month: string): number {
-  return txns.filter((t) => ym(t.date) === month && !t.transfer && t.category === 'Income' && t.pence > 0)
+  return txns.filter((t) => ym(t.date) === month && !t.transfer && (t.category === 'Income' || t.category === 'Dividends') && t.pence > 0)
     .reduce((s, t) => s + t.pence, 0);
 }
 
@@ -37,7 +37,11 @@ export function monthlySeries(txns: Txn[], upTo: string, n = 6) {
 /** Household monthly income: payslip take-home if known, else recorded income. */
 export function householdIncome(v: Vault, month: string): number {
   const th = takeHome(v.payslips);
-  return th > 0 ? th : incomeOf(v.txns, month);
+  if (th <= 0) return incomeOf(v.txns, month);
+  // payslips don't show dividends, so add their recent monthly average
+  const ms = Array.from({ length: 6 }, (_, i) => addMonths(month, -i));
+  const divs = v.txns.filter((t) => t.category === 'Dividends' && t.pence > 0 && !t.transfer && ms.includes(ym(t.date))).reduce((s, t) => s + t.pence, 0);
+  return th + Math.round(divs / 6);
 }
 
 export function avgSpendByCategory(txns: Txn[], upTo: string, n = 6): Record<string, number> {

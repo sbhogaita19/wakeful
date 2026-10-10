@@ -61,7 +61,7 @@ export function Import({ go }: ViewProps) {
           <li><b>Payslips</b> add to your take-home. <b>Bills</b> (energy, water, broadband, mobile, alarm…) are added or updated, with price changes tracked.</li>
           <li><b>Recurring payments</b> in your bank data become bills automatically; new rises and cancellations are flagged.</li>
           <li>Wrong account? Use the menu on the file above. Not happy? <b>Undo</b>. Anything uncertain is listed under “worth a look”.</li>
-          <li>Exports: Monzo → Statements → CSV · Starling → Statements → CSV · Nationwide → Statements → Download CSV.</li>
+          <li>Getting the files: look for “Statements” or “Export” in your bank’s app or website and choose CSV (or PDF). Menus change, so check your bank’s help if you can’t find it.</li>
         </ul>
       </Card>
     </>

@@ -16,7 +16,7 @@ export function Import({ go }: ViewProps) {
       <label className={`drop ${hot ? 'hot' : ''}`} style={{ cursor: 'pointer', display: 'block' }}
         onDragOver={(e) => { e.preventDefault(); setHot(true); }} onDragLeave={() => setHot(false)}
         onDrop={(e) => { e.preventDefault(); setHot(false); ingestFiles(Array.from(e.dataTransfer.files)); }}>
-        {busy ? <b>Reading and filing…</b> : <><b>Drop files here</b><br />or click to choose · CSV or PDF · as many as you like, mixed together</>}
+        {busy ? <b>Reading and filing…</b> : <><b>Drop files here</b><br />or tap to choose · CSV or PDF · as many as you like, mixed together</>}
         <input type="file" multiple accept=".csv,.pdf,.txt,text/csv,application/pdf" hidden onChange={(e) => { if (e.target.files) ingestFiles(Array.from(e.target.files)); e.target.value = ''; }} />
       </label>
 

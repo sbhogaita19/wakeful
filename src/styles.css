@@ -204,3 +204,15 @@ code, kbd { font-family: var(--mono); background: var(--inset); border: 1px soli
 
 .dropveil { position: fixed; inset: 0; z-index: 60; background: color-mix(in srgb, var(--bg) 80%, transparent); backdrop-filter: blur(6px); display: grid; place-items: center; pointer-events: none; }
 .dropveil > div { border: 1px dashed var(--accent); padding: 40px 56px; color: var(--accent); font-family: var(--mono); letter-spacing: .18em; text-transform: uppercase; font-size: 13px; background: var(--accent-bg); }
+
+.table td.num { white-space: nowrap; }
+.table select { padding-right: 26px; background-position: right 8px center; text-overflow: ellipsis; max-width: 150px; }
+label.row { flex-wrap: nowrap; align-items: flex-start; }
+label.row > input[type=checkbox] { flex: none; margin-top: 4px; }
+.table td .cat-note { margin-top: 6px; font-size: 12.5px; }
+
+.only-s { display: none; }
+@media (max-width: 860px) {
+  .table .cat-col { display: none; }
+  .table select.only-s { display: block; max-width: 100%; width: 100%; margin-top: 6px; }
+}

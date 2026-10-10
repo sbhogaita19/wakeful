@@ -49,12 +49,20 @@ export function Line({ points }: { points: { date: string; net: number }[] }) {
   const X = (x: number) => pad + ((x - x0) / Math.max(1, x1 - x0)) * (W - pad * 2);
   const Y = (y: number) => H - pad - ((y - y0) / Math.max(1, y1 - y0)) * (H - pad * 2);
   const d = points.map((p, i) => `${i ? 'L' : 'M'}${X(Date.parse(p.date)).toFixed(1)},${Y(p.net).toFixed(1)}`).join(' ');
+  const first = points[0], last = points[points.length - 1];
   return (
+    <>
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label="Net worth over time">
       <defs><linearGradient id="lg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="var(--accent)" stopOpacity=".28" /><stop offset="1" stopColor="var(--accent)" stopOpacity="0" /></linearGradient></defs>
       <path d={`${d} L${X(x1)},${H} L${X(x0)},${H} Z`} fill="url(#lg)" />
       <path d={d} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinejoin="round" />
       {points.map((p) => <circle key={p.date} cx={X(Date.parse(p.date))} cy={Y(p.net)} r="3.5" fill="var(--bg)" stroke="var(--accent)" strokeWidth="2"><title>{`${p.date}: ${fmt0(p.net)}`}</title></circle>)}
     </svg>
+    <div className="row between note" style={{ marginTop: 8 }}>
+      <span>{first.date} · {fmt0(first.net)}</span>
+      <span className={last.net >= first.net ? 'pos' : 'neg'}>{last.net >= first.net ? '▲' : '▼'} {fmt0(Math.abs(last.net - first.net))}</span>
+      <span>{last.date} · {fmt0(last.net)}</span>
+    </div>
+    </>
   );
 }

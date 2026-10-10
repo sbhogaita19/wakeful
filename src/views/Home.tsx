@@ -8,7 +8,7 @@ import { pulse } from '../lib/pulse';
 import { findGaps } from '../lib/gaps';
 import { fmt0 } from '../lib/money';
 import { daysUntil, fmtDate } from '../lib/dates';
-import { activeBills, colorOf } from '../types';
+import { activeBills, childAccountIds, colorOf } from '../types';
 import type { ViewProps } from '../nav';
 
 export function Home({ go }: ViewProps) {
@@ -17,7 +17,7 @@ export function Home({ go }: ViewProps) {
   const data = useMemo(() => {
     const income = m ? householdIncome(v, m) : 0;
     const spend = m ? totalSpend(v.txns, m) : 0;
-    return { income, spend, kept: income - spend, nw: netWorth(v.accounts), p: pulse(v), ins: buildInsights(v), series: m ? monthlySeries(v.txns, m) : [], cats: m ? spendByCategory(v.txns, m) : {} };
+    return { income, spend, kept: income - spend, nw: netWorth(v.accounts, childAccountIds(v)), p: pulse(v), ins: buildInsights(v), series: m ? monthlySeries(v.txns, m) : [], cats: m ? spendByCategory(v.txns, m) : {} };
   }, [v, m]);
 
   if (!v.txns.length && !v.accounts.length) {

@@ -95,16 +95,18 @@ export function homeEquity(accounts: Account[], today?: string) {
   return value > 0 ? { value, owed, equity: value - owed, ltv: (owed / value) * 100 } : null;
 }
 
-export function netWorth(accounts: Account[]) {
+export function netWorth(accounts: Account[], skip?: Set<string>) {
   let assets = 0, debts = 0;
   for (const a of accounts) {
+    if (skip?.has(a.id)) continue;
     const b = valueNow(a);
     if (isLiability(a.kind)) debts += b; else assets += b;
   }
   return { assets, debts, net: assets - debts };
 }
 
-export function netWorthHistory(accounts: Account[]) {
+export function netWorthHistory(accounts: Account[], skip?: Set<string>) {
+  accounts = skip ? accounts.filter((a) => !skip.has(a.id)) : accounts;
   const dates = [...new Set(accounts.flatMap((a) => a.balances.map((b) => b.date)))].sort();
   return dates.map((d) => {
     let net = 0;

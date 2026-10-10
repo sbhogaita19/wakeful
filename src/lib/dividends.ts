@@ -22,7 +22,7 @@ export function dividendSummaries(v: Vault, today = todayISO()): DividendSummary
   const out: DividendSummary[] = [];
   const elapsed = Math.max(1 / 12, Math.min(1, (Date.parse(today) - Date.parse(start)) / (Date.parse(end) - Date.parse(start) + 86400000)));
   const yearEnd = +end.slice(0, 4);
-  for (const m of v.household.members) {
+  for (const m of v.household.members) { // adults and children (a child can receive dividends too)
     const mine = divs.filter((t) => owner(v, t) === m.id);
     if (!mine.length) continue;
     const inYear = mine.filter((t) => t.date >= start && t.date <= end);

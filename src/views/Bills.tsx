@@ -7,7 +7,7 @@ import { recurring } from '../lib/analytics';
 import { daysUntil, fmtDate, todayISO } from '../lib/dates';
 import { fmt, fmt0, parseMoney, uid } from '../lib/money';
 import { parseBillLines } from '../lib/billParse';
-import { activeBills, type Bill, type BillKind } from '../types';
+import { activeBills, adults, type Bill, type BillKind } from '../types';
 
 const KINDS: BillKind[] = ['energy', 'water', 'council-tax', 'broadband', 'mobile', 'insurance', 'security', 'tv-licence', 'subscription', 'other'];
 const pounds = (p: number) => (p ? (p / 100).toFixed(2) : '');
@@ -20,11 +20,11 @@ export function Bills() {
   const past = v.bills.filter((b) => b.endedOn).sort((a, b) => b.endedOn!.localeCompare(a.endedOn!));
   const nowFor = (old: Bill) => activeBills(v).find((b) => b.kind === old.kind && b.id !== old.id);
   const total = bills.reduce((s, b) => s + b.monthly, 0);
-  const share = v.household.members.map((m) => ({ m, p: Math.round(bills.reduce((s, b) => s + (b.monthly * (b.split[m.id] ?? 0)) / 100, 0)) }));
+  const share = adults(v).map((m) => ({ m, p: Math.round(bills.reduce((s, b) => s + (b.monthly * (b.split[m.id] ?? 0)) / 100, 0)) }));
 
   const blank = (): Bill => ({
     id: uid(), kind: 'energy', provider: '', propertyId: v.household.properties[0].id, monthly: 0, history: [],
-    split: Object.fromEntries(v.household.members.map((m) => [m.id, Math.round(100 / v.household.members.length)])),
+    split: Object.fromEntries(adults(v).map((m) => [m.id, Math.round(100 / adults(v).length)])),
   });
 
   const suggestions = useMemo(() => {
@@ -151,7 +151,7 @@ function BillEditor({ bill, isNew, onSave, onDelete, onClose, onSwitch }: { bill
       )}
       <div>
         <div className="note" style={{ marginBottom: 6 }}>Who pays (percent)</div>
-        <div className="fgrid">{v.household.members.map((m) => (
+        <div className="fgrid">{adults(v).map((m) => (
           <Field key={m.id} label={m.name}><input inputMode="numeric" value={b.split[m.id] ?? 0} onChange={(e) => set({ split: { ...b.split, [m.id]: +e.target.value || 0 } })} /></Field>))}</div>
         {splitSum !== 100 && <div className="err">Shares add up to {splitSum}%, not 100%.</div>}
       </div>

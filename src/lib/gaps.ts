@@ -1,6 +1,6 @@
 import { latestBalance } from './analytics';
 import { daysUntil, todayISO } from './dates';
-import { activeBills, type Vault } from '../types';
+import { activeBills, adults, type Vault } from '../types';
 import type { Tab } from '../nav';
 
 export interface Gap { id: string; text: string; tab: Tab; }
@@ -13,7 +13,7 @@ export function findGaps(v: Vault, today = todayISO()): Gap[] {
     const accts = v.accounts.filter((a) => ['current', 'credit-card'].includes(a.kind));
     if (!accts.length) g.push({ id: 'accts', text: 'No current accounts yet', tab: 'wealth' });
   }
-  for (const m of v.household.members)
+  for (const m of adults(v))
     if (!v.payslips.some((p) => p.memberId === m.id)) g.push({ id: `ps-${m.id}`, text: `Add a payslip for ${m.name} to work out take-home`, tab: 'income' });
   if (!activeBills(v).length) g.push({ id: 'bills', text: 'Add your utilities and services (energy, water, broadband, mobile, insurance, council tax)', tab: 'bills' });
   for (const b of activeBills(v)) {

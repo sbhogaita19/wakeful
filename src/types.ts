@@ -1,19 +1,20 @@
 export type Pence = number;
 export type Bank = 'monzo' | 'starling' | 'nationwide' | 'other';
 export type AccountKind =
-  | 'current' | 'savings' | 'isa' | 'pension' | 'investment' | 'property'
+  | 'current' | 'savings' | 'isa' | 'jisa' | 'pension' | 'investment' | 'property'
   | 'credit-card' | 'loan' | 'mortgage' | 'owed';
 
 export const LIABILITY_KINDS: AccountKind[] = ['credit-card', 'loan', 'mortgage', 'owed'];
 export const isLiability = (k: AccountKind) => LIABILITY_KINDS.includes(k);
 
 export const KIND_LABEL: Record<AccountKind, string> = {
-  current: 'Current account', savings: 'Savings', isa: 'ISA', pension: 'Pension',
+  current: 'Current account', savings: 'Savings', isa: 'ISA', jisa: 'Junior ISA', pension: 'Pension',
   investment: 'Investment', property: 'Property', 'credit-card': 'Credit card', loan: 'Loan',
   mortgage: 'Mortgage', owed: 'Money I owe',
 };
 
-export interface Member { id: string; name: string; }
+/** adults earn and share bills; children hold their own savings but aren't part of income or bill splits */
+export interface Member { id: string; name: string; kind?: 'adult' | 'child'; }
 export interface Property { id: string; name: string; }
 
 export interface Account {
@@ -189,3 +190,13 @@ export function colorOf(c: string): string {
 
 /** Bills you currently have (not cancelled or switched away from). */
 export const activeBills = (v: { bills: Bill[] }): Bill[] => v.bills.filter((b) => !b.endedOn);
+
+type Hh = { household: { members: Member[] } };
+/** Earning adults — used for payslips, bill splits and the joint-account check. */
+export const adults = (v: Hh): Member[] => { const a = v.household.members.filter((m) => m.kind !== 'child'); return a.length ? a : v.household.members; };
+export const children = (v: Hh): Member[] => v.household.members.filter((m) => m.kind === 'child');
+/** Accounts that belong to children — their money, not the household's. */
+export const childAccountIds = (v: Hh & { accounts: Account[] }): Set<string> => {
+  const kids = new Set(children(v).map((m) => m.id));
+  return new Set(v.accounts.filter((a) => kids.has(a.ownerId)).map((a) => a.id));
+};

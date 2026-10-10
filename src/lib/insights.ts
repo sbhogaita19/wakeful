@@ -5,7 +5,7 @@ import { fmt0 } from './money';
 import { earningsSummary, taxCheck } from './payslip';
 import { dividendSummaries, unassignedDividends } from './dividends';
 import { jointAnalysis } from './joint';
-import { activeBills, isLiability, type Vault } from '../types';
+import { activeBills, adults, childAccountIds, isLiability, type Vault } from '../types';
 import { merchantKey } from './categorise';
 
 export type Severity = 'high' | 'medium' | 'info';
@@ -195,7 +195,7 @@ export function buildInsights(v: Vault, today = todayISO()): Insight[] {
         detail: `LTV is ${eq.ltv.toFixed(0)}%. Paying down about ${fmt0(need)} (or a higher valuation) crosses ${target}% LTV — lenders price better below each band.` });
     }
   }
-  const saversLow = v.accounts.filter((a) => (a.kind === 'savings' || a.kind === 'isa') && a.rate !== undefined && a.rate < 3.5 && latestBalance(a) > 100000);
+  const saversLow = v.accounts.filter((a) => (a.kind === 'savings' || a.kind === 'isa' || a.kind === 'jisa') && a.rate !== undefined && a.rate < 3.5 && latestBalance(a) > 100000);
   for (const a of saversLow) out.push({ id: `rate-${a.id}`, area: 'saving', severity: 'medium', title: `${a.name} pays only ${a.rate}%`,
     detail: `${fmt0(latestBalance(a))} could earn more. Compare easy-access and fixed savings rates.`, yearly: Math.round(latestBalance(a) * 0.01) });
   // high-interest debt + savings sitting idle
@@ -221,7 +221,7 @@ export function buildInsights(v: Vault, today = todayISO()): Insight[] {
   }
 
   // ---- Overtime reliance, dividends and joint-account fairness
-  for (const m of v.household.members) {
+  for (const m of adults(v)) {
     const slips = v.payslips.filter((x) => x.memberId === m.id).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
     const e = earningsSummary(slips);
     if (e.slips >= 3 && e.overtimeShare > 0.1)
@@ -274,7 +274,7 @@ export function buildInsights(v: Vault, today = todayISO()): Insight[] {
     if (!hasGreen) out.push({ id: 'green', area: 'planet', severity: 'info', title: 'Consider a renewable electricity tariff',
       detail: 'Many 100% renewable tariffs now cost the same as standard ones.' });
   }
-  const nw = netWorth(v.accounts);
+  const nw = netWorth(v.accounts, childAccountIds(v));
   if (nw.net < 0 && v.accounts.length) out.push({ id: 'nw', area: 'debt', severity: 'info', title: 'Net worth is negative', detail: 'Mortgages often cause this. Track the trend, not the number.' });
 
   return finish(out, v);

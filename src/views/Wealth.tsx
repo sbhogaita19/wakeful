@@ -6,7 +6,7 @@ import { Line } from '../components/Charts';
 import { homeEquity, latestBalance, netWorth, netWorthHistory, valueNow } from '../lib/analytics';
 import { fmt, fmt0, parseMoney, uid } from '../lib/money';
 import { fmtDate, todayISO } from '../lib/dates';
-import { KIND_LABEL, isLiability, type Account, type AccountKind, type Bank } from '../types';
+import { KIND_LABEL, children, childAccountIds, isLiability, type Account, type AccountKind, type Bank } from '../types';
 
 const KINDS = Object.keys(KIND_LABEL) as AccountKind[];
 
@@ -21,11 +21,12 @@ function payoff(balance: number, apr: number, pay: number): string {
 export function Wealth() {
   const { vault: v, update } = useStore();
   const [edit, setEdit] = useState<Account | null>(null);
-  const nw = netWorth(v.accounts);
+  const kidIds = childAccountIds(v);
+  const nw = netWorth(v.accounts, kidIds);
   const equity = homeEquity(v.accounts);
-  const hist = netWorthHistory(v.accounts);
+  const hist = netWorthHistory(v.accounts, kidIds);
   const owner = (id: string) => (id === 'joint' ? 'Joint' : v.household.members.find((m) => m.id === id)?.name ?? '');
-  const assets = v.accounts.filter((a) => !isLiability(a.kind));
+  const assets = v.accounts.filter((a) => !isLiability(a.kind) && !kidIds.has(a.id));
   const debts = v.accounts.filter((a) => isLiability(a.kind));
   const blank = (): Account => ({ id: uid(), name: '', bank: 'other', kind: 'current', ownerId: 'joint', balances: [] });
 
@@ -49,6 +50,16 @@ export function Wealth() {
         <Card><div className="stat"><div className="label">Assets</div><div className="val pos">{fmt0(nw.assets)}</div></div></Card>
         <Card><div className="stat"><div className="label">Owed</div><div className="val">{fmt0(nw.debts)}</div></div></Card>
       </div>
+      {children(v).map((c) => {
+        const mine = v.accounts.filter((a) => a.ownerId === c.id);
+        const total = mine.reduce((s, a) => s + valueNow(a), 0);
+        return (
+          <Card key={c.id} title={`${c.name}’s savings`} sub="their money — not counted in household net worth" action={<span className="gold mono">{fmt0(total)}</span>}>
+            {mine.length ? mine.map(row) : <Empty title="No accounts yet">Add a savings account or Junior ISA with {c.name} as the owner.</Empty>}
+            <p className="note" style={{ marginTop: 10 }}>Tip: interest on money a parent has given a child can be taxed on that parent above £100 a year (per parent). Junior ISAs are tax-free.</p>
+          </Card>
+        );
+      })}
       {equity && (
         <div className="grid g3">
           <Card><div className="stat"><div className="label">Home value</div><div className="val">{fmt0(equity.value)}</div></div></Card>

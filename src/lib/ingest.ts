@@ -1,4 +1,4 @@
-import type { Account, Bank, Bill, BillKind, Payslip, Txn, Vault } from '../types';
+import { adults, type Account, type Bank, type Bill, type BillKind, type Payslip, type Txn, type Vault } from '../types';
 import { importCsv, type ParsedRow } from './bankCsv';
 import { parseStatementLines } from './statement';
 import { categorise, dedupe, markTransfers, merchantKey } from './categorise';
@@ -60,7 +60,7 @@ function billKindOf(text: string, category: string): BillKind {
 
 const title = (s: string) => s.toLowerCase().replace(/\b([a-z])/g, (m) => m.toUpperCase()).replace(/\b(Dd|Ltd|Plc)\b/g, '').replace(/\s+/g, ' ').trim();
 
-const equalSplit = (v: Vault) => Object.fromEntries(v.household.members.map((m) => [m.id, Math.round(100 / v.household.members.length)]));
+const equalSplit = (v: Vault) => { const a = adults(v); return Object.fromEntries(a.map((m) => [m.id, Math.round(100 / a.length)])); };
 
 /** Pick the account an upload belongs to, creating one if needed. */
 function pickAccount(v: Vault, bank: Bank, rows: { date: string; pence: number; desc: string }[]): { v: Vault; account: Account; created: boolean } {
@@ -105,11 +105,11 @@ function addPayslip(v: Vault, name: string, lines: string[], report: Report): { 
   // Whose payslip? Match a name on the slip, else the same employer as an earlier slip, else the first person.
   const text = lines.join(' ').toLowerCase();
   const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const byName = v.household.members.filter((m) => m.name.trim().length >= 3 && new RegExp(`\\b${esc(m.name.trim().toLowerCase())}\\b`).test(text));
+  const byName = adults(v).filter((m) => m.name.trim().length >= 3 && new RegExp(`\\b${esc(m.name.trim().toLowerCase())}\\b`).test(text));
   const prev = g.employer ? v.payslips.find((x) => x.employer.toLowerCase() === g.employer!.toLowerCase()) : undefined;
-  const found = byName.length === 1 ? byName[0] : prev ? v.household.members.find((m) => m.id === prev.memberId) : undefined;
-  const member = found ?? v.household.members[0];
-  const guessed = !found && v.household.members.length > 1;
+  const found = byName.length === 1 ? byName[0] : prev ? adults(v).find((m) => m.id === prev.memberId) : undefined;
+  const member = found ?? adults(v)[0];
+  const guessed = !found && adults(v).length > 1;
   const p: Payslip = { id: uid(), memberId: member.id, date: g.date ?? todayISO(), employer: g.employer ?? '', gross: g.gross, tax: g.tax ?? 0, ni: g.ni ?? 0,
     pension: g.pension ?? 0, studentLoan: g.studentLoan ?? 0, otherDeductions: Math.max(0, g.gross - (g.tax ?? 0) - (g.ni ?? 0) - (g.pension ?? 0) - (g.studentLoan ?? 0) - g.net), net: g.net };
   if (v.payslips.some((x) => x.memberId === p.memberId && x.date === p.date && x.net === p.net)) return { v, res: { name, kind: 'payslip', ok: true, message: 'Payslip already added' } };

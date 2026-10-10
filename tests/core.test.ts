@@ -325,3 +325,24 @@ describe('dividends, tax code, overtime, joint', () => {
     expect(ja.rows.reduce((s, r) => s + r.fair, 0)).toBeGreaterThan(ja.outgoings - 5);
   });
 });
+
+import { adults, childAccountIds } from '../src/types';
+describe('children', () => {
+  const v = demoVault();
+  it('child savings are excluded from household net worth but still tracked', () => {
+    const kids = childAccountIds(v);
+    expect(kids.size).toBe(2);
+    expect(netWorth(v.accounts, kids).net).toBe(netWorth(v.accounts).net - (342000 + 82000));
+    expect(adults(v).map((m) => m.name)).toEqual(['Asha', 'Ben']);
+  });
+  it('joint-account fairness ignores children', () => {
+    const ja = jointAnalysis(v, '2026-09')!;
+    expect(ja.rows.map((r) => r.name)).toEqual(['Asha', 'Ben']);
+    expect(ja.rows.reduce((s, r) => s + r.share, 0)).toBeCloseTo(1, 5);
+  });
+  it('new bills split between adults only', async () => {
+    const r = await ingest(v, [file('verisure.txt', 'Verisure\nAlarm monitoring\nTotal amount due £39.00\nInvoice 1\n')]);
+    const b = r.vault.bills.find((x) => /verisure/i.test(x.provider))!;
+    expect(Object.keys(b.split).sort()).toEqual(['m1', 'm2']);
+  });
+});

@@ -1,4 +1,4 @@
-import { NON_SPEND, type Vault } from '../types';
+import { NON_SPEND, adults, type Vault } from '../types';
 import { ym } from './dates';
 import { takeHome } from './payslip';
 
@@ -11,7 +11,8 @@ export interface JointAnalysis { accounts: string[]; outgoings: number; rows: Jo
  */
 export function jointAnalysis(v: Vault, month: string, basis: 'income' | 'equal' = 'income'): JointAnalysis | null {
   const joint = v.accounts.filter((a) => a.ownerId === 'joint' && a.kind === 'current');
-  if (!joint.length || v.household.members.length < 2) return null;
+  const ppl = adults(v);
+  if (!joint.length || ppl.length < 2) return null;
   const ids = new Set(joint.map((a) => a.id));
   const mine = v.txns.filter((t) => ids.has(t.accountId) && ym(t.date) === month);
   const outgoings = mine.filter((t) => t.pence < 0 && !t.transfer && !NON_SPEND.has(t.category)).reduce((s, t) => s - t.pence, 0);
@@ -30,16 +31,16 @@ export function jointAnalysis(v: Vault, month: string, basis: 'income' | 'equal'
     } else {
       const text = t.desc.toLowerCase();
       who = v.payslips.find((p) => p.employer && p.employer.length >= 3 && text.includes(p.employer.toLowerCase().slice(0, 12)))?.memberId
-        ?? v.household.members.find((m) => m.name.length >= 3 && text.includes(m.name.toLowerCase()))?.id;
+        ?? ppl.find((m) => m.name.length >= 3 && text.includes(m.name.toLowerCase()))?.id;
     }
     if (who) paid[who] = (paid[who] ?? 0) + t.pence; else unattributed += t.pence;
   }
 
-  const net: Record<string, number> = Object.fromEntries(v.household.members.map((m) => [m.id, takeHome(v.payslips.filter((p) => p.memberId === m.id))]));
+  const net: Record<string, number> = Object.fromEntries(ppl.map((m) => [m.id, takeHome(v.payslips.filter((p) => p.memberId === m.id))]));
   const totalNet = Object.values(net).reduce((a, b) => a + b, 0);
   const totalPaid = Object.values(paid).reduce((a, b) => a + b, 0);
-  const n = v.household.members.length;
-  const rows = v.household.members.map((m): JointRow => {
+  const n = ppl.length;
+  const rows = ppl.map((m): JointRow => {
     const incomeShare = totalNet > 0 ? net[m.id] / totalNet : 1 / n;
     const share = basis === 'income' && totalNet > 0 ? incomeShare : 1 / n;
     const fair = Math.round(outgoings * share);

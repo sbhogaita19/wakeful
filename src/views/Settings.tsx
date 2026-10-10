@@ -31,8 +31,15 @@ export function Settings() {
           <Field label="Household name"><input value={v.household.name} onChange={(e) => update((x) => ({ ...x, household: { ...x.household, name: e.target.value } }))} /></Field>
           <div className="fgrid">
             <div className="stack"><div className="eyebrow">People</div>
-              {v.household.members.map((m) => <input key={m.id} value={m.name} onChange={(e) => update((x) => ({ ...x, household: { ...x.household, members: x.household.members.map((y) => (y.id === m.id ? { ...y, name: e.target.value } : y)) } }))} />)}
-              <button className="btn sm" onClick={() => update((x) => ({ ...x, household: { ...x.household, members: [...x.household.members, { id: uid(), name: 'New person' }] } }))}>Add person</button></div>
+              {v.household.members.map((m) => (
+                <div className="row" key={m.id} style={{ flexWrap: 'nowrap' }}>
+                  <input value={m.name} onChange={(e) => update((x) => ({ ...x, household: { ...x.household, members: x.household.members.map((y) => (y.id === m.id ? { ...y, name: e.target.value } : y)) } }))} />
+                  <select value={m.kind ?? 'adult'} aria-label="Adult or child" style={{ width: 'auto' }} onChange={(e) => update((x) => ({ ...x, household: { ...x.household, members: x.household.members.map((y) => (y.id === m.id ? { ...y, kind: e.target.value as 'adult' | 'child' } : y)) } }))}><option value="adult">Adult</option><option value="child">Child</option></select>
+                </div>))}
+              <div className="row">
+                <button className="btn sm" onClick={() => update((x) => ({ ...x, household: { ...x.household, members: [...x.household.members, { id: uid(), name: 'New person', kind: 'adult' }] } }))}>Add adult</button>
+                <button className="btn sm" onClick={() => update((x) => ({ ...x, household: { ...x.household, members: [...x.household.members, { id: uid(), name: 'Child', kind: 'child' }] } }))}>Add child</button>
+              </div></div>
             <div className="stack"><div className="eyebrow">Properties</div>
               {v.household.properties.map((m) => <input key={m.id} value={m.name} onChange={(e) => update((x) => ({ ...x, household: { ...x.household, properties: x.household.properties.map((y) => (y.id === m.id ? { ...y, name: e.target.value } : y)) } }))} />)}
               <button className="btn sm" onClick={() => update((x) => ({ ...x, household: { ...x.household, properties: [...x.household.properties, { id: uid(), name: 'Another property' }] } }))}>Add property</button></div>

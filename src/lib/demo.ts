@@ -18,7 +18,7 @@ export function demoVault(endMonth = '2026-09'): Vault {
   const v = emptyVault();
   v.household = {
     name: 'The Rivers household',
-    members: [{ id: 'm1', name: 'Asha' }, { id: 'm2', name: 'Ben' }],
+    members: [{ id: 'm1', name: 'Asha', kind: 'adult' }, { id: 'm2', name: 'Ben', kind: 'adult' }, { id: 'm3', name: 'Maya', kind: 'child' }],
     properties: [{ id: 'p1', name: 'Family home' }],
   };
   const accounts: Account[] = [
@@ -33,6 +33,9 @@ export function demoVault(endMonth = '2026-09'): Vault {
       { date: `${addMonths(endMonth, -5)}-28`, pence: 4150000 }, { date: `${endMonth}-28`, pence: 4520000 }] },
     { id: 'a7', name: 'Workplace pension — Ben', bank: 'other', kind: 'pension', ownerId: 'm2', balances: [
       { date: `${addMonths(endMonth, -5)}-28`, pence: 2890000 }, { date: `${endMonth}-28`, pence: 3110000 }] },
+    { id: 'a12', name: 'Maya — Junior ISA', bank: 'other', kind: 'jisa', ownerId: 'm3', rate: 4.1, balances: [
+      { date: `${addMonths(endMonth, -5)}-28`, pence: 310000 }, { date: `${endMonth}-28`, pence: 342000 }] },
+    { id: 'a13', name: 'Maya — savings pot', bank: 'monzo', kind: 'savings', ownerId: 'm3', rate: 2.0, balances: [{ date: `${endMonth}-28`, pence: 82000 }] },
     { id: 'a11', name: 'Family home (estimate)', bank: 'other', kind: 'property', ownerId: 'joint', balances: [{ date: `${endMonth}-28`, pence: 34500000 }] },
     { id: 'a8', name: 'Mortgage', bank: 'other', kind: 'mortgage', ownerId: 'joint', rate: 4.2, monthly: 112000, fixedUntil: '2027-01-31', balances: [
       { date: `${addMonths(endMonth, -5)}-28`, pence: 21540000 }, { date: `${endMonth}-28`, pence: 21280000 }] },

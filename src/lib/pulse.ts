@@ -1,6 +1,6 @@
 import { avgSpendByCategory, householdIncome, latestBalance, latestMonth, netWorth, spendByCategory, totalSpend } from './analytics';
 import { daysUntil, todayISO } from './dates';
-import { activeBills, isLiability, type Vault } from '../types';
+import { activeBills, childAccountIds, isLiability, type Vault } from '../types';
 
 export interface Pillar { key: string; label: string; score: number; note: string; }
 
@@ -50,7 +50,8 @@ export function pulse(v: Vault, today = todayISO()): { overall: number; pillars:
   } else pillars.push({ key: 'bills', label: 'Bills', score: 40, note: 'Add your household bills' });
 
   // Resilience: months of spending in liquid savings
-  const liquid = v.accounts.filter((a) => ['current', 'savings', 'isa'].includes(a.kind)).reduce((s, a) => s + latestBalance(a), 0);
+  const kids = childAccountIds(v);
+  const liquid = v.accounts.filter((a) => ['current', 'savings', 'isa'].includes(a.kind) && !kids.has(a.id)).reduce((s, a) => s + latestBalance(a), 0);
   const avg = Object.values(avgSpendByCategory(v.txns, cur)).reduce((a, b) => a + b, 0) || spend;
   const mos = avg > 0 ? liquid / avg : 0;
   pillars.push({ key: 'resilience', label: 'Resilience', score: clamp((mos / 6) * 100), note: `${mos.toFixed(1)} months of spending in cash` });

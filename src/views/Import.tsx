@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useStore } from '../store';
 import { Card, Head } from '../components/ui';
 import type { ViewProps } from '../nav';
+import { adults } from '../types';
 
 const KIND_LABEL = { statement: 'Bank statement', payslip: 'Payslip', bill: 'Bill', unknown: 'Unrecognised' } as const;
 
@@ -34,9 +35,9 @@ export function Import({ go }: ViewProps) {
           {report.files.map((f, i) => (
             <div className="li" key={i}>
               <div><div className="t">{f.name}</div><div className={`s ${f.ok ? '' : 'warn'}`}>{KIND_LABEL[f.kind]} · {f.message}</div></div>
-              {f.payslipId && v.household.members.length > 1 && (
+              {f.payslipId && adults(v).length > 1 && (
                 <select defaultValue={f.memberId} onChange={(e) => reassignPayslip(f.payslipId!, e.target.value)} style={{ width: 'auto', maxWidth: 200 }} aria-label="Whose payslip">
-                  {v.household.members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                  {adults(v).map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
               )}
               {f.batch && f.accountId && accts.length > 1 && (

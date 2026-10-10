@@ -8,7 +8,7 @@ import { earningsSummary, impliedNet, parsePayslipLines, takeHome, taxCheck, tax
 import { dividendSummaries, unassignedDividends } from '../lib/dividends';
 import { jointAnalysis, personalSpend } from '../lib/joint';
 import { latestMonth } from '../lib/analytics';
-import type { Payslip } from '../types';
+import { adults, type Payslip } from '../types';
 
 const F: { k: keyof Payslip; l: string }[] = [
   { k: 'gross', l: 'Gross pay' }, { k: 'tax', l: 'Income tax' }, { k: 'ni', l: 'National Insurance' },
@@ -20,7 +20,7 @@ export function Income() {
   const [edit, setEdit] = useState<Payslip | null>(null);
   const th = takeHome(v.payslips);
   const name = (id: string) => v.household.members.find((m) => m.id === id)?.name ?? '';
-  const blank = (): Payslip => ({ id: uid(), memberId: v.household.members[0].id, date: todayISO(), employer: '', gross: 0, tax: 0, ni: 0, pension: 0, studentLoan: 0, otherDeductions: 0, net: 0 });
+  const blank = (): Payslip => ({ id: uid(), memberId: adults(v)[0].id, date: todayISO(), employer: '', gross: 0, tax: 0, ni: 0, pension: 0, studentLoan: 0, otherDeductions: 0, net: 0 });
   return (
     <>
       <Head title="Income" sub="Take-home worked out from your payslips, automatically.">
@@ -28,12 +28,12 @@ export function Income() {
       </Head>
       <div className="grid g3">
         <Card><div className="stat"><div className="label">Household take-home</div><div className="val pos">{fmt0(th)}</div><div className="note">monthly · average of each person’s latest 3 payslips</div></div></Card>
-        {v.household.members.map((m) => {
+        {adults(v).map((m) => {
           const t = takeHome(v.payslips.filter((p) => p.memberId === m.id));
           return <Card key={m.id}><div className="stat"><div className="label">{m.name}</div><div className="val">{t ? fmt0(t) : '—'}</div></div></Card>;
         }).slice(0, 2)}
       </div>
-      {v.household.members.map((m) => {
+      {adults(v).map((m) => {
         const mine = v.payslips.filter((p) => p.memberId === m.id).sort((a, b) => b.date.localeCompare(a.date));
         return mine.length ? <Breakdown key={m.id} name={m.name} slips={mine} /> : null;
       })}
@@ -93,7 +93,7 @@ function PayslipEditor({ p, isNew, onSave, onDelete, onClose }: { p: Payslip; is
         <input type="file" accept=".pdf,.txt" hidden onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])} /></label>
       {msg && <div className="note">{msg}</div>}
       <div className="fgrid">
-        <Field label="Whose payslip"><select value={d.memberId} onChange={(e) => setD({ ...d, memberId: e.target.value })}>{v.household.members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></Field>
+        <Field label="Whose payslip"><select value={d.memberId} onChange={(e) => setD({ ...d, memberId: e.target.value })}>{adults(v).map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></Field>
         <Field label="Pay date"><input type="date" value={d.date} onChange={(e) => setD({ ...d, date: e.target.value })} /></Field>
         <Field label="Employer"><input value={d.employer} onChange={(e) => setD({ ...d, employer: e.target.value })} /></Field>
         <span />

@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useStore } from '../store';
-import { Card, Empty, Head, MonthNav, Seg } from '../components/ui';
+import { Card, Empty, Field, Head, Modal, MonthNav, Seg } from '../components/ui';
 import { MiniBar } from '../components/Charts';
 import { avgSpendByCategory, latestMonth, months, spendByCategory } from '../lib/analytics';
 import { learnRule, merchantKey } from '../lib/categorise';
 import { fmt, fmt0, parseMoney } from '../lib/money';
-import { NON_SPEND, allCategories, colorOf } from '../types';
+import { NON_SPEND, allCategories, colorOf, type Txn } from '../types';
 import { ym } from '../lib/dates';
 
 export function Spending() {
@@ -42,9 +42,11 @@ export function Spending() {
             const avg = avgSpendByCategory(x.txns, latestMonth(x.txns) ?? m);
             return { ...x, budget: Object.fromEntries(Object.entries(avg).map(([c, a]) => [c, Math.round((a * 0.97) / 500) * 500])) };
           })}>Suggest from my history</button>}>
-          <table className="table"><thead><tr><th>Category</th><th className="num">Budget</th><th className="num hide-s">This month</th></tr></thead>
+          <table className="table"><thead><tr><th>Category</th><th className="hide-s">What it covers</th><th className="num">Budget</th><th className="num hide-s">This month</th></tr></thead>
             <tbody>{allCategories(v).filter((c) => !NON_SPEND.has(c)).map((c) => (
               <tr key={c}><td><i className="dot" style={{ background: colorOf(c) }} /> {c}</td>
+                <td className="hide-s"><input placeholder="Add a description" defaultValue={v.categoryNotes?.[c] ?? ''} style={{ minWidth: 180 }}
+                  onBlur={(e) => update((x) => ({ ...x, categoryNotes: { ...x.categoryNotes, [c]: e.target.value.trim() } }))} /></td>
                 <td className="num" style={{ width: 130 }}><input inputMode="decimal" placeholder="£0" defaultValue={v.budget[c] ? (v.budget[c] / 100).toString() : ''}
                   onBlur={(e) => { const p = parseMoney(e.target.value); update((x) => ({ ...x, budget: { ...x.budget, [c]: p && p > 0 ? p : 0 } })); }} style={{ textAlign: 'right' }} /></td>
                 <td className="num hide-s mute">{fmt0(cats[c] ?? 0)}</td></tr>))}</tbody></table>
@@ -61,7 +63,9 @@ function Txns({ m }: { m: string }) {
   const [q, setQ] = useState('');
   const [cat, setCat] = useState('');
   const [review, setReview] = useState(false);
-  const rows = v.txns.filter((t) => ym(t.date) === m && (!cat || t.category === cat) && (!review || t.review || t.category === 'Other') && (!q || t.desc.toLowerCase().includes(q.toLowerCase())))
+  const [editing, setEditing] = useState<Txn | null>(null);
+  const name = (t: Txn) => v.aliases?.[merchantKey(t.desc)] ?? t.desc;
+  const rows = v.txns.filter((t) => ym(t.date) === m && (!cat || t.category === cat) && (!review || t.review || t.category === 'Other') && (!q || `${name(t)} ${t.desc} ${t.note ?? ''}`.toLowerCase().includes(q.toLowerCase())))
     .sort((a, b) => b.date.localeCompare(a.date)).slice(0, 300);
   const acct = (id: string) => v.accounts.find((a) => a.id === id)?.name ?? '';
   const setCategory = (id: string, desc: string, c: string) => update((x) => ({
@@ -79,7 +83,10 @@ function Txns({ m }: { m: string }) {
         <tbody>{rows.map((t) => (
           <tr key={t.id}>
             <td className="mute" style={{ whiteSpace: 'nowrap' }}>{t.date.slice(5)}</td>
-            <td>{t.desc}{t.review && <span className="badge medium" style={{ marginLeft: 6 }}>check</span>}
+            <td><button className="btn sm ghost" style={{ padding: 0, color: 'var(--text)', textAlign: 'left' }} title="Edit name, category and note" onClick={() => setEditing(t)}>{name(t)}</button>
+              {name(t) !== t.desc && <div className="note">{t.desc}</div>}
+              {t.note && <div className="note">“{t.note}”</div>}
+              {t.review && <span className="badge medium" style={{ marginLeft: 6 }}>check</span>}
               {t.category === 'Giving' && t.pence < 0 && <label className="note" style={{ display: 'block' }}><input type="checkbox" style={{ width: 'auto', marginRight: 6 }} checked={!!t.giftAid} onChange={(e) => update((x) => ({ ...x, txns: x.txns.map((y) => (y.id === t.id ? { ...y, giftAid: e.target.checked } : y)) }))} />Gift Aid</label>}
             </td>
             <td className="hide-s mute">{acct(t.accountId)}</td>
@@ -87,7 +94,8 @@ function Txns({ m }: { m: string }) {
             <td className={`num ${t.pence > 0 ? 'pos' : ''}`}>{fmt(t.pence)}</td>
           </tr>))}</tbody></table>
       {!rows.length && <Empty title="No transactions" />}
-      <p className="note" style={{ marginTop: 10 }}>Change a category once and Wakeful applies it to the same merchant from then on.</p>
+      {editing && <TxnEditor t={editing} onClose={() => setEditing(null)} />}
+      <p className="note" style={{ marginTop: 10 }}>Click a description to rename it, change its category or add a note. Change a category once and Wakeful applies it to the same merchant from then on.</p>
     </Card>
   );
 }
@@ -113,5 +121,41 @@ function AddCategory() {
       </form>
       <p className="note" style={{ marginTop: 8 }}>Then pick it on any transaction in Transactions — Wakeful applies it to that merchant from then on.</p>
     </div>
+  );
+}
+
+function TxnEditor({ t, onClose }: { t: Txn; onClose: () => void }) {
+  const { vault: v, update } = useStore();
+  const key = merchantKey(t.desc);
+  const [label, setLabel] = useState(v.aliases?.[key] ?? t.desc);
+  const [cat, setCat] = useState(t.category);
+  const [note, setNote] = useState(t.note ?? '');
+  const [all, setAll] = useState(true);
+  const count = v.txns.filter((x) => merchantKey(x.desc) === key).length;
+  const save = () => {
+    const n = label.trim();
+    update((x) => {
+      const aliases = { ...x.aliases };
+      if (all) { if (!n || n === t.desc) delete aliases[key]; else aliases[key] = n; }
+      const rules = all && cat !== t.category ? learnRule(x.rules, t.desc, cat) : x.rules;
+      const txns = x.txns.map((y) => {
+        if (y.id === t.id) return { ...y, category: cat, note: note.trim() || undefined, review: false };
+        if (all && !y.transfer && merchantKey(y.desc) === key) return { ...y, category: cat };
+        return y;
+      });
+      return { ...x, aliases, rules, txns };
+    });
+    onClose();
+  };
+  return (
+    <Modal title="Edit transaction" onClose={onClose}>
+      <div className="note">As on your statement: {t.desc}</div>
+      <Field label="Name to show"><input value={label} onChange={(e) => setLabel(e.target.value)} /></Field>
+      <Field label="Category"><select value={cat} onChange={(e) => setCat(e.target.value)}>{allCategories(v).map((c) => <option key={c}>{c}</option>)}</select></Field>
+      {v.categoryNotes?.[cat] && <div className="note">{cat}: {v.categoryNotes[cat]}</div>}
+      <Field label="Note (this transaction only)"><textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. annual alarm service" /></Field>
+      <label className="row note" style={{ gap: 8 }}><input type="checkbox" style={{ width: 'auto' }} checked={all} onChange={(e) => setAll(e.target.checked)} />Apply name and category to all {count} from this merchant, including future imports</label>
+      <div className="row between"><button className="btn ghost" onClick={onClose}>Cancel</button><button className="btn primary" onClick={save}>Save</button></div>
+    </Modal>
   );
 }

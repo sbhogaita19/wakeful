@@ -49,6 +49,8 @@ export interface Txn {
   src: 'csv' | 'pdf' | 'manual' | 'demo';
   /** donation eligible for Gift Aid */
   giftAid?: boolean;
+  /** your own note on this transaction */
+  note?: string;
   /** user's own mindful tag */
   tag?: 'mindful' | 'regret';
 }
@@ -118,6 +120,10 @@ export interface Vault {
   budget: Record<string, Pence>;
   /** user-defined spending categories, in addition to the built-in list */
   customCategories: string[];
+  /** your own descriptions for categories */
+  categoryNotes: Record<string, string>;
+  /** merchant key -> the name you want shown */
+  aliases: Record<string, string>;
   rules: Rule[];
   values: Values;
   settings: Settings;
@@ -131,7 +137,7 @@ export const emptyVault = (): Vault => ({
     properties: [{ id: 'p1', name: 'Home' }],
   },
   accounts: [], txns: [], payslips: [], bills: [], readings: [],
-  budget: {}, customCategories: [], rules: [],
+  budget: {}, customCategories: [], categoryNotes: {}, aliases: {}, rules: [],
   values: { enabled: true, givingPct: 2, enough: 0 },
   settings: { autoLockMins: 5 },
 });

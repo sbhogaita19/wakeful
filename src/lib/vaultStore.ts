@@ -37,7 +37,7 @@ export const hasVault = async () => !!(await get());
 /** Fill gaps so older/imported vaults always have the full shape. */
 export function normaliseVault(v: Partial<Vault>): Vault {
   const e = emptyVault();
-  return { ...e, ...v, customCategories: v.customCategories ?? [], v: 2, household: { ...e.household, ...v.household }, values: { ...e.values, ...v.values }, settings: { ...e.settings, ...v.settings } } as Vault;
+  return { ...e, ...v, customCategories: v.customCategories ?? [], categoryNotes: v.categoryNotes ?? {}, aliases: v.aliases ?? {}, v: 2, household: { ...e.household, ...v.household }, values: { ...e.values, ...v.values }, settings: { ...e.settings, ...v.settings } } as Vault;
 }
 
 export async function createVault(pass: string, vault: Vault = emptyVault()) {

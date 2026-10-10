@@ -8,7 +8,7 @@ import { pulse } from '../lib/pulse';
 import { findGaps } from '../lib/gaps';
 import { fmt0 } from '../lib/money';
 import { daysUntil, fmtDate } from '../lib/dates';
-import { CATEGORY_COLOR } from '../types';
+import { colorOf } from '../types';
 import type { ViewProps } from '../nav';
 
 export function Home({ go }: ViewProps) {
@@ -104,8 +104,8 @@ export function Home({ go }: ViewProps) {
         <Card title="Where it went">
           {topCats.map(([c, val]) => (
             <div key={c} style={{ marginBottom: 10 }}>
-              <div className="row between"><span><i className="dot" style={{ background: CATEGORY_COLOR[c] }} /> {c}</span><b>{fmt0(val)}</b></div>
-              <div className="bar"><i style={{ width: `${(val / maxCat) * 100}%`, background: CATEGORY_COLOR[c] }} /></div>
+              <div className="row between"><span><i className="dot" style={{ background: colorOf(c) }} /> {c}</span><b>{fmt0(val)}</b></div>
+              <div className="bar"><i style={{ width: `${(val / maxCat) * 100}%`, background: colorOf(c) }} /></div>
             </div>
           ))}
           {!topCats.length && <Empty title="Nothing this month" />}

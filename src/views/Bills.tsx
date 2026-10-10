@@ -9,7 +9,7 @@ import { fmt, fmt0, parseMoney, uid } from '../lib/money';
 import { parseBillLines } from '../lib/billParse';
 import type { Bill, BillKind } from '../types';
 
-const KINDS: BillKind[] = ['energy', 'water', 'council-tax', 'broadband', 'mobile', 'insurance', 'tv-licence', 'subscription', 'other'];
+const KINDS: BillKind[] = ['energy', 'water', 'council-tax', 'broadband', 'mobile', 'insurance', 'security', 'tv-licence', 'subscription', 'other'];
 const pounds = (p: number) => (p ? (p / 100).toFixed(2) : '');
 
 export function Bills() {

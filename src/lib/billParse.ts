@@ -8,6 +8,7 @@ export function parseBillLines(lines: string[]): Partial<Bill> & { found: string
   const out: Partial<Bill> & { found: string[] } = { found: [] };
 
   const kinds: [BillKind, RegExp][] = [
+    ['security', /\b(alarm|verisure|intruder|monitoring centre|keyholder)\b/i],
     ['energy', /\b(kwh|electricity|gas supply|meter point|mpan|mprn)\b/i],
     ['water', /\b(water|sewerage|wastewater|m3|cubic met)/i],
     ['broadband', /\b(broadband|fibre|wi-?fi|router)\b/i],
@@ -37,7 +38,7 @@ export function parseBillLines(lines: string[]): Partial<Bill> & { found: string
   if (end) { const d = parseDate(end[1]); if (d) { out.contractEnd = d; out.found.push('contract end'); } }
 
   const prov = ['Octopus', 'British Gas', 'EDF', 'E.ON', 'OVO', 'Scottish Power', 'Bulb', 'Thames Water', 'Severn Trent', 'United Utilities', 'Anglian Water', 'Yorkshire Water',
-    'Southern Water', 'Virgin Media', 'BT', 'Sky', 'TalkTalk', 'Plusnet', 'Vodafone', 'EE', 'O2', 'Three', 'Giffgaff', 'Aviva', 'Admiral', 'Direct Line'].find((p) => new RegExp(`\\b${p.replace('.', '\\.')}\\b`, 'i').test(text));
+    'Southern Water', 'Virgin Media', 'BT', 'Sky', 'TalkTalk', 'Plusnet', 'Vodafone', 'EE', 'O2', 'Three', 'Giffgaff', 'Aviva', 'Admiral', 'Direct Line', 'Verisure', 'ADT', 'Utilita', 'Shell Energy', 'SSE', 'Utility Warehouse', 'So Energy', 'Welsh Water'].find((p) => new RegExp(`\\b${p.replace('.', '\\.')}\\b`, 'i').test(text));
   if (prov) { out.provider = prov; out.found.push('provider'); }
   return out;
 }

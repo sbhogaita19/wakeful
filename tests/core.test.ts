@@ -184,3 +184,19 @@ describe('home equity', () => {
     expect(Math.round(e.ltv)).toBe(60);
   });
 });
+
+import { allCategories, colorOf } from '../src/types';
+describe('utilities & custom categories', () => {
+  it('files utilities and alarm providers under Bills', () => {
+    for (const d of ['OCTOPUS ENERGY DD', 'BT GROUP PLC', 'VERISURE SECURITY', 'UTILITA ENERGY', 'ADT ALARM'])
+      expect(categorise(d, -3000, [])).toBe('Bills');
+  });
+  it('reads a Verisure bill as security', () => {
+    expect(parseBillLines(['Verisure', 'Alarm monitoring', 'Total amount due £39.00'])).toMatchObject({ kind: 'security', provider: 'Verisure', monthly: 3900 });
+  });
+  it('supports custom categories with stable colours', () => {
+    expect(allCategories({ customCategories: ['Home security'] })).toContain('Home security');
+    expect(colorOf('Home security')).toBe(colorOf('Home security'));
+    expect(colorOf('Groceries')).toMatch(/^#/);
+  });
+});

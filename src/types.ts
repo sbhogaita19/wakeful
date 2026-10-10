@@ -69,7 +69,7 @@ export interface Payslip {
 
 export type BillKind =
   | 'energy' | 'water' | 'council-tax' | 'broadband' | 'mobile'
-  | 'insurance' | 'tv-licence' | 'subscription' | 'other';
+  | 'insurance' | 'security' | 'tv-licence' | 'subscription' | 'other';
 
 export interface Bill {
   id: string;
@@ -116,6 +116,8 @@ export interface Vault {
   bills: Bill[];
   readings: Reading[];
   budget: Record<string, Pence>;
+  /** user-defined spending categories, in addition to the built-in list */
+  customCategories: string[];
   rules: Rule[];
   values: Values;
   settings: Settings;
@@ -129,7 +131,7 @@ export const emptyVault = (): Vault => ({
     properties: [{ id: 'p1', name: 'Home' }],
   },
   accounts: [], txns: [], payslips: [], bills: [], readings: [],
-  budget: {}, rules: [],
+  budget: {}, customCategories: [], rules: [],
   values: { enabled: true, givingPct: 2, enough: 0 },
   settings: { autoLockMins: 5 },
 });
@@ -151,3 +153,14 @@ export const CATEGORY_COLOR: Record<string, string> = {
   Family: '#e0a96d', Giving: '#e6c27a', 'Debt payments': '#ef6f6f', 'Fees & interest': '#ff5d73',
   Cash: '#9aa4b2', 'Savings & transfers': '#6e7a8a', Other: '#7d8794',
 };
+
+/** Built-in plus user-defined categories. */
+export const allCategories = (v: { customCategories?: string[] }): string[] => [...CATEGORIES, ...(v.customCategories ?? [])];
+
+/** Stable colour for any category, including custom ones. */
+export function colorOf(c: string): string {
+  if (CATEGORY_COLOR[c]) return CATEGORY_COLOR[c];
+  let h = 0;
+  for (const ch of c) h = (h * 31 + ch.charCodeAt(0)) % 360;
+  return `hsl(${h} 65% 62%)`;
+}

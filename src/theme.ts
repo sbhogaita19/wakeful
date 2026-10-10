@@ -1,3 +1,5 @@
+import { Capacitor, SystemBars, SystemBarsStyle } from '@capacitor/core';
+
 export type ThemePref = 'auto' | 'dark' | 'light';
 const KEY = 'wakeful-theme';
 
@@ -11,6 +13,8 @@ export function applyTheme(pref: ThemePref = getPref()) {
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#000000' : '#fbf9f4');
   document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', dark ? 'dark' : 'light');
+  // Android: make status/navigation bar icons readable on our background, whatever the phone's own theme is.
+  if (Capacitor.isNativePlatform()) SystemBars.setStyle({ style: dark ? SystemBarsStyle.Dark : SystemBarsStyle.Light }).catch(() => {});
 }
 
 export function setPref(p: ThemePref) {

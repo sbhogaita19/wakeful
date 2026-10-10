@@ -8,7 +8,7 @@ import { pulse } from '../lib/pulse';
 import { findGaps } from '../lib/gaps';
 import { fmt0 } from '../lib/money';
 import { daysUntil, fmtDate } from '../lib/dates';
-import { colorOf } from '../types';
+import { activeBills, colorOf } from '../types';
 import type { ViewProps } from '../nav';
 
 export function Home({ go }: ViewProps) {
@@ -35,7 +35,7 @@ export function Home({ go }: ViewProps) {
     );
   }
 
-  const renewals = v.bills.filter((b) => b.contractEnd && daysUntil(b.contractEnd) <= 90).sort((a, b) => a.contractEnd!.localeCompare(b.contractEnd!)).slice(0, 4);
+  const renewals = activeBills(v).filter((b) => b.contractEnd && daysUntil(b.contractEnd) <= 90).sort((a, b) => a.contractEnd!.localeCompare(b.contractEnd!)).slice(0, 4);
   const topCats = Object.entries(data.cats).sort((a, b) => b[1] - a[1]).slice(0, 6);
   const maxCat = topCats[0]?.[1] ?? 1;
   const gaps = findGaps(v);

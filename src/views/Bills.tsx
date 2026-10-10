@@ -7,7 +7,7 @@ import { recurring } from '../lib/analytics';
 import { daysUntil, fmtDate, todayISO } from '../lib/dates';
 import { fmt, fmt0, parseMoney, uid } from '../lib/money';
 import { parseBillLines } from '../lib/billParse';
-import type { Bill, BillKind } from '../types';
+import { activeBills, type Bill, type BillKind } from '../types';
 
 const KINDS: BillKind[] = ['energy', 'water', 'council-tax', 'broadband', 'mobile', 'insurance', 'security', 'tv-licence', 'subscription', 'other'];
 const pounds = (p: number) => (p ? (p / 100).toFixed(2) : '');
@@ -16,7 +16,9 @@ export function Bills() {
   const { vault: v, update } = useStore();
   const [edit, setEdit] = useState<Bill | null>(null);
   const [prop, setProp] = useState('all');
-  const bills = v.bills.filter((b) => prop === 'all' || b.propertyId === prop);
+  const bills = activeBills(v).filter((b) => prop === 'all' || b.propertyId === prop);
+  const past = v.bills.filter((b) => b.endedOn).sort((a, b) => b.endedOn!.localeCompare(a.endedOn!));
+  const nowFor = (old: Bill) => activeBills(v).find((b) => b.kind === old.kind && b.id !== old.id);
   const total = bills.reduce((s, b) => s + b.monthly, 0);
   const share = v.household.members.map((m) => ({ m, p: Math.round(bills.reduce((s, b) => s + (b.monthly * (b.split[m.id] ?? 0)) / 100, 0)) }));
 
@@ -71,16 +73,35 @@ export function Bills() {
         </Card>
       )}
 
+      {past.length > 0 && (
+        <Card title="Past services" sub="cancelled or switched — kept for your records">
+          {past.map((b) => {
+            const now = nowFor(b);
+            const diff = now ? (b.monthly - now.monthly) * 12 : 0;
+            return (
+              <div className="li" key={b.id} onClick={() => setEdit(b)} style={{ cursor: 'pointer' }}>
+                <div><div className="t">{b.provider} <span className="badge">{b.kind.replace('-', ' ')}</span></div>
+                  <div className="s">ended {fmtDate(b.endedOn!)}{now ? ` · now ${now.provider} at ${fmt(now.monthly)}/mo` : ''}</div>
+                  {now && now.monthly > 0 && b.monthly > 0 && <div className={`s ${diff >= 0 ? 'pos' : 'warn'}`}>{diff >= 0 ? `Saving ${fmt0(diff)} a year since switching` : `Costing ${fmt0(-diff)} a year more since switching`}</div>}
+                </div>
+                <div className="r">{fmt(b.monthly)}<div className="s">was / month</div></div>
+              </div>
+            );
+          })}
+        </Card>
+      )}
+
       <Readings />
       <p className="note">Energy comparisons use {BENCH.source} (as of {BENCH.asOf}). Bundled with the app — nothing is looked up online.</p>
       {edit && <BillEditor bill={edit} isNew={!v.bills.some((b) => b.id === edit.id)} onClose={() => setEdit(null)}
+        onSwitch={(old) => { update((x) => ({ ...x, bills: x.bills.map((y) => (y.id === old.id ? { ...old, endedOn: todayISO() } : y)) })); setEdit({ ...blank(), kind: old.kind, propertyId: old.propertyId, split: old.split, fuel: old.fuel, provider: '' }); }}
         onSave={(b) => { update((x) => ({ ...x, bills: x.bills.some((y) => y.id === b.id) ? x.bills.map((y) => (y.id === b.id ? b : y)) : [...x.bills, b] })); setEdit(null); }}
         onDelete={() => { update((x) => ({ ...x, bills: x.bills.filter((y) => y.id !== edit.id) })); setEdit(null); }} />}
     </>
   );
 }
 
-function BillEditor({ bill, isNew, onSave, onDelete, onClose }: { bill: Bill; isNew: boolean; onSave: (b: Bill) => void; onDelete: () => void; onClose: () => void }) {
+function BillEditor({ bill, isNew, onSave, onDelete, onClose, onSwitch }: { bill: Bill; isNew: boolean; onSave: (b: Bill) => void; onDelete: () => void; onClose: () => void; onSwitch: (b: Bill) => void }) {
   const { vault: v } = useStore();
   const [b, setB] = useState(bill);
   const [monthly, setMonthly] = useState(pounds(bill.monthly));
@@ -117,6 +138,7 @@ function BillEditor({ bill, isNew, onSave, onDelete, onClose }: { bill: Bill; is
         <Field label="Monthly cost (£)"><input inputMode="decimal" value={monthly} onChange={(e) => setMonthly(e.target.value)} /></Field>
         <Field label="Contract / fix ends"><input type="date" value={b.contractEnd ?? ''} onChange={(e) => set({ contractEnd: e.target.value || undefined })} /></Field>
         {v.household.properties.length > 1 && <Field label="Property"><select value={b.propertyId} onChange={(e) => set({ propertyId: e.target.value })}>{v.household.properties.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field>}
+        <Field label="Ended / switched away on"><input type="date" value={b.endedOn ?? ''} onChange={(e) => set({ endedOn: e.target.value || undefined })} /></Field>
         <Field label="Bank text to match (optional)"><input value={b.match ?? ''} onChange={(e) => set({ match: e.target.value || undefined })} placeholder="e.g. OCTOPUS" /></Field>
       </div>
       {b.kind === 'energy' && (
@@ -136,7 +158,7 @@ function BillEditor({ bill, isNew, onSave, onDelete, onClose }: { bill: Bill; is
       <Field label="Notes"><textarea rows={2} value={b.note ?? ''} onChange={(e) => set({ note: e.target.value })} /></Field>
       <div className="row between">
         {!isNew ? <button className="btn danger" onClick={onDelete}>Delete</button> : <span />}
-        <div className="row"><button className="btn" onClick={() => save(true)}>Save & mark reviewed</button><button className="btn primary" onClick={() => save()}>Save</button></div>
+        <div className="row">{!isNew && !bill.endedOn && <button className="btn" title="Ends this service today and starts a new one" onClick={() => onSwitch({ ...b, monthly: parseMoney(monthly) ?? b.monthly })}>I’ve switched provider</button>}<button className="btn" onClick={() => save(true)}>Save & mark reviewed</button><button className="btn primary" onClick={() => save()}>Save</button></div>
       </div>
     </Modal>
   );

@@ -5,6 +5,7 @@ import * as vs from './lib/vaultStore';
 import { demoVault } from './lib/demo';
 import { latestMonth } from './lib/analytics';
 import type { Stored } from './lib/crypto';
+import { ingest, latestTxnMonth, type Report } from './lib/ingest';
 
 export type Phase = 'loading' | 'new' | 'locked' | 'open';
 
@@ -23,6 +24,13 @@ interface Ctx {
   exit: () => void;
   restore: (text: string) => Promise<void>;
   wipeAll: () => Promise<void>;
+  /** Classify, categorise and file any mix of statements, payslips and bills automatically. */
+  ingestFiles: (files: File[]) => Promise<void>;
+  report: Report | null;
+  busy: boolean;
+  undoImport: () => void;
+  dismissReport: () => void;
+  moveBatch: (batch: string, accountId: string) => void;
 }
 
 const C = createContext<Ctx>(null as never);
@@ -38,7 +46,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const timer = useRef<number>();
   const pending = useRef<Vault | null>(null);
   const setupDone = useRef(true);
+  const vref = useRef(vault);
+  const before = useRef<Vault | null>(null);
+  const [report, setReport] = useState<Report | null>(null);
+  const [busy, setBusy] = useState(false);
 
+  vref.current = vault;
   useEffect(() => { vs.hasVault().then((h) => setPhase(h ? 'locked' : 'new')).catch(() => setPhase('new')); }, []);
 
   const flush = useCallback(async () => {
@@ -107,11 +120,26 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       open(r.vault);
     },
     startDemo: () => { setDemo(true); setupDone.current = true; open(demoVault()); },
+    ingestFiles: async (files) => {
+      if (!files.length) return;
+      setBusy(true);
+      try {
+        before.current = vref.current;
+        const r = await ingest(vref.current, files);
+        update(() => r.vault);
+        setMonth(latestTxnMonth(r.vault) ?? '');
+        setReport(r.report);
+      } finally { setBusy(false); }
+    },
+    report, busy,
+    undoImport: () => { if (before.current) { const b = before.current; update(() => b); before.current = null; } setReport(null); },
+    dismissReport: () => setReport(null),
+    moveBatch: (batch, accountId) => update((x) => ({ ...x, txns: x.txns.map((t) => (t.batch === batch ? { ...t, accountId } : t)) })),
     lock,
     exit: () => { setDemo(false); setVault(emptyVault()); vs.hasVault().then((h) => setPhase(h ? 'locked' : 'new')); },
     restore: async (text) => { await vs.importBackup(text); setPhase('locked'); },
     wipeAll: async () => { await vs.wipe(); key.current = null; stored.current = null; setVault(emptyVault()); setPhase('new'); },
-  }), [phase, demo, vault, month, update, lock]);
+  }), [phase, demo, vault, month, update, lock, report, busy]);
 
   return <C.Provider value={value}>{children}</C.Provider>;
 }

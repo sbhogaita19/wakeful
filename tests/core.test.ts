@@ -200,3 +200,63 @@ describe('utilities & custom categories', () => {
     expect(colorOf('Groceries')).toMatch(/^#/);
   });
 });
+
+import { buildCuts } from '../src/lib/cuts';
+describe('could go', () => {
+  const cuts = buildCuts(demoVault());
+  it('finds overlapping streaming, subscriptions and fees', () => {
+    const ids = cuts.map((c) => c.id);
+    expect(ids).toContain('ovl-video');
+    expect(ids).toContain('fees');
+    expect(cuts.some((c) => /PUREGYM/i.test(c.title))).toBe(true);
+    expect(cuts.every((c, i) => i === 0 || cuts[i - 1].yearly >= c.yearly)).toBe(true);
+  });
+});
+
+import { classifyLines, ingest, syncBills } from '../src/lib/ingest';
+import { activeBills } from '../src/types';
+const file = (name: string, text: string) => new File([text], name);
+describe('automatic ingest', () => {
+  it('classifies documents', () => {
+    expect(classifyLines(['Pay date 25/09/2026', 'Gross Pay 4,458.00', 'Income Tax 639.00', 'Net Pay 3,298.00'])).toBe('payslip');
+    expect(classifyLines(['Octopus Energy', 'Your electricity: 28.5p per kWh', 'Standing charge 55.2p per day', 'Total amount due £112.40'])).toBe('bill');
+    expect(classifyLines(['Statement 1 Oct 2025', 'Balance brought forward £1,000.00', '02 Oct TESCO 25.00 975.00', '03 Oct COSTA 5.00 970.00', '04 Oct ALDI 15.00 955.00', '05 Oct SALARY 2,000.00 2,955.00', '06 Oct PRET 4.00 2,951.00'])).toBe('statement');
+    expect(classifyLines(['hello world'])).toBe('unknown');
+  });
+
+  it('files mixed uploads with no questions, creates accounts and bills, and is idempotent', async () => {
+    const mk = (n: string) => file(`${n}-sample.csv`, readFileSync(`samples/${n}-sample.csv`, 'utf8'));
+    const v0 = emptyVault();
+    const a = await ingest(v0, [mk('monzo'), mk('starling'), mk('nationwide')]);
+    expect(a.report.accounts).toBe(3);
+    expect(a.report.txns).toBeGreaterThan(200);
+    expect(a.vault.accounts.map((x) => x.bank).sort()).toEqual(['monzo', 'nationwide', 'starling']);
+    expect(a.vault.txns.every((t) => t.category)).toBe(true);
+    expect(a.report.billsAdded).toBeGreaterThan(3);
+    expect(a.vault.bills.some((b) => /octopus/i.test(b.provider) && b.kind === 'energy')).toBe(true);
+    expect(a.vault.bills.some((b) => /vodafone|giffgaff/i.test(b.provider) && b.kind === 'mobile')).toBe(true);
+    // second upload of the same files adds nothing and creates no extra accounts
+    const b = await ingest(a.vault, [mk('monzo'), mk('starling'), mk('nationwide')]);
+    expect(b.report.txns).toBe(0);
+    expect(b.report.dupes).toBe(a.report.txns);
+    expect(b.vault.accounts).toHaveLength(3);
+    expect(b.vault.bills).toHaveLength(a.vault.bills.length);
+  });
+
+  it('reads a payslip and a bill dropped together', async () => {
+    const slip = file('payslip.txt', 'Pay date 25/09/2026\nGross Pay 4,458.00\nIncome Tax 639.00\nNational Insurance 298.00\nPension 223.00\nNet Pay 3,298.00\n');
+    const bill = file('verisure.txt', 'Verisure\nAlarm monitoring\nTotal amount due £39.00\nInvoice 123\n');
+    const r = await ingest(emptyVault(), [slip, bill]);
+    expect(r.report.payslips).toBe(1);
+    expect(r.vault.payslips[0].net).toBe(329800);
+    expect(r.vault.bills.find((b) => /verisure/i.test(b.provider))).toMatchObject({ kind: 'security', monthly: 3900 });
+  });
+
+  it('ended bills stop counting and are not recreated', async () => {
+    const v = (await ingest(emptyVault(), [file('monzo-sample.csv', readFileSync('samples/monzo-sample.csv', 'utf8'))])).vault;
+    const oct = v.bills.find((b) => /octopus/i.test(b.provider))!;
+    const ended = { ...v, bills: v.bills.map((b) => (b.id === oct.id ? { ...b, endedOn: '2026-09-30' } : b)) };
+    expect(activeBills(ended).some((b) => b.id === oct.id)).toBe(false);
+    expect(syncBills(ended).bills.filter((b) => /octopus/i.test(b.provider))).toHaveLength(1);
+  });
+});

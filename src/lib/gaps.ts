@@ -1,6 +1,6 @@
 import { latestBalance } from './analytics';
 import { daysUntil, todayISO } from './dates';
-import type { Vault } from '../types';
+import { activeBills, type Vault } from '../types';
 import type { Tab } from '../nav';
 
 export interface Gap { id: string; text: string; tab: Tab; }
@@ -15,8 +15,8 @@ export function findGaps(v: Vault, today = todayISO()): Gap[] {
   }
   for (const m of v.household.members)
     if (!v.payslips.some((p) => p.memberId === m.id)) g.push({ id: `ps-${m.id}`, text: `Add a payslip for ${m.name} to work out take-home`, tab: 'income' });
-  if (!v.bills.length) g.push({ id: 'bills', text: 'Add your utilities and services (energy, water, broadband, mobile, insurance, council tax)', tab: 'bills' });
-  for (const b of v.bills) {
+  if (!activeBills(v).length) g.push({ id: 'bills', text: 'Add your utilities and services (energy, water, broadband, mobile, insurance, council tax)', tab: 'bills' });
+  for (const b of activeBills(v)) {
     const n = `${b.provider || b.kind}`;
     if (b.kind === 'energy' && (!b.unitRate || !b.standingCharge)) g.push({ id: `rate-${b.id}`, text: `${n}: add unit rate and standing charge to check against the price cap`, tab: 'bills' });
     if (['energy', 'broadband', 'mobile', 'insurance'].includes(b.kind) && !b.contractEnd) g.push({ id: `end-${b.id}`, text: `${n}: when does the contract end?`, tab: 'bills' });

@@ -49,6 +49,8 @@ export interface Txn {
   src: 'csv' | 'pdf' | 'manual' | 'demo';
   /** donation eligible for Gift Aid */
   giftAid?: boolean;
+  /** import batch this row came from */
+  batch?: string;
   /** your own note on this transaction */
   note?: string;
   /** user's own mindful tag */
@@ -93,6 +95,10 @@ export interface Bill {
   match?: string;
   note?: string;
   reviewedOn?: string;
+  /** added automatically from your bank data or a bill upload */
+  auto?: boolean;
+  /** cancelled or switched away on this date (YYYY-MM-DD); kept as history */
+  endedOn?: string;
 }
 
 export interface Reading { id: string; propertyId: string; fuel: 'electricity' | 'gas' | 'water'; date: string; value: number; }
@@ -122,6 +128,8 @@ export interface Vault {
   customCategories: string[];
   /** your own descriptions for categories */
   categoryNotes: Record<string, string>;
+  /** your Keep / Cancel decisions on 'could go' candidates */
+  decisions: Record<string, 'keep' | 'cancel'>;
   /** merchant key -> the name you want shown */
   aliases: Record<string, string>;
   rules: Rule[];
@@ -137,7 +145,7 @@ export const emptyVault = (): Vault => ({
     properties: [{ id: 'p1', name: 'Home' }],
   },
   accounts: [], txns: [], payslips: [], bills: [], readings: [],
-  budget: {}, customCategories: [], categoryNotes: {}, aliases: {}, rules: [],
+  budget: {}, customCategories: [], categoryNotes: {}, decisions: {}, aliases: {}, rules: [],
   values: { enabled: true, givingPct: 2, enough: 0 },
   settings: { autoLockMins: 5 },
 });
@@ -170,3 +178,6 @@ export function colorOf(c: string): string {
   for (const ch of c) h = (h * 31 + ch.charCodeAt(0)) % 360;
   return `hsl(${h} 65% 62%)`;
 }
+
+/** Bills you currently have (not cancelled or switched away from). */
+export const activeBills = (v: { bills: Bill[] }): Bill[] => v.bills.filter((b) => !b.endedOn);

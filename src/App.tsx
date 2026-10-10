@@ -13,6 +13,7 @@ import { Import } from './views/Import';
 import { Settings } from './views/Settings';
 import type { Tab } from './nav';
 import { isDark, setPref } from './theme';
+import { useEffect } from 'react';
 
 const ORDER: { t: Tab; l: string; i: string; main?: boolean }[] = [
   { t: 'home', l: 'Overview', i: 'home', main: true },
@@ -31,6 +32,21 @@ export function App() {
   const [tab, setTab] = useState<Tab>('home');
   const [menu, setMenu] = useState(false);
   const [, setTick] = useState(0);
+  const [drag, setDrag] = useState(false);
+
+  // Drop files anywhere in the app: they are classified and filed automatically.
+  useEffect(() => {
+    if (s.phase !== 'open') return;
+    const over = (e: DragEvent) => { if (e.dataTransfer?.types.includes('Files')) { e.preventDefault(); setDrag(true); } };
+    const leave = (e: DragEvent) => { if (!e.relatedTarget) setDrag(false); };
+    const drop = (e: DragEvent) => {
+      if (!e.dataTransfer?.files.length) return;
+      e.preventDefault(); setDrag(false);
+      setTab('import'); s.ingestFiles(Array.from(e.dataTransfer.files));
+    };
+    window.addEventListener('dragover', over); window.addEventListener('dragleave', leave); window.addEventListener('drop', drop);
+    return () => { window.removeEventListener('dragover', over); window.removeEventListener('dragleave', leave); window.removeEventListener('drop', drop); };
+  }, [s.phase, s.ingestFiles]);
 
   if (s.phase === 'loading') return <div className="center"><Logo /></div>;
   if (s.phase !== 'open') return <Onboarding />;
@@ -79,6 +95,7 @@ export function App() {
         </div>
       </main>
 
+      {drag && <div className="dropveil"><div>Drop to file automatically</div></div>}
       <nav className="tabbar" aria-label="Main">
         {group(true).map((n) => <button key={n.t} className={tab === n.t ? 'on' : ''} onClick={() => go(n.t)}><Icon n={n.i} />{n.l === 'Overview' ? 'Home' : n.l}</button>)}
       </nav>

@@ -1,6 +1,6 @@
 import { avgSpendByCategory, householdIncome, latestBalance, latestMonth, netWorth, spendByCategory, totalSpend } from './analytics';
 import { daysUntil, todayISO } from './dates';
-import { isLiability, type Vault } from '../types';
+import { activeBills, isLiability, type Vault } from '../types';
 
 export interface Pillar { key: string; label: string; score: number; note: string; }
 
@@ -39,7 +39,7 @@ export function pulse(v: Vault, today = todayISO()): { overall: number; pillars:
     note: unsecured === 0 ? 'No unsecured debt' : `${Math.round(ratio * 100)}% of yearly income owed` });
 
   // Bills awareness: reviewed, nothing expiring unaddressed
-  const bills = v.bills;
+  const bills = activeBills(v);
   if (bills.length) {
     const ok = bills.filter((b) => {
       const reviewed = b.reviewedOn && daysUntil(today, b.reviewedOn) <= 365;

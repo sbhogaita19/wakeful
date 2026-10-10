@@ -3,7 +3,7 @@ import { avgSpendByCategory, homeEquity, householdIncome, latestBalance, latestM
 import { addMonths, daysUntil, todayISO, ym } from './dates';
 import { fmt0 } from './money';
 import { taxSanity } from './payslip';
-import { isLiability, type Vault } from '../types';
+import { activeBills, isLiability, type Vault } from '../types';
 import { merchantKey } from './categorise';
 
 export type Severity = 'high' | 'medium' | 'info';
@@ -27,7 +27,7 @@ export function buildInsights(v: Vault, today = todayISO()): Insight[] {
   const income = cur ? householdIncome(v, cur) : 0;
 
   // ---- Bills: contracts, price rises, benchmarks
-  for (const b of v.bills) {
+  for (const b of activeBills(v)) {
     const label = `${b.provider} (${b.kind.replace('-', ' ')})`;
     if (b.contractEnd) {
       const d = daysUntil(b.contractEnd, today);
@@ -76,10 +76,25 @@ export function buildInsights(v: Vault, today = todayISO()): Insight[] {
           detail: 'Loyalty rarely pays. A 10-minute review is the best-value saving there is.' });
     }
   }
-  const dupKinds = v.bills.filter((b) => b.kind === 'subscription');
+  const dupKinds = activeBills(v).filter((b) => b.kind === 'subscription');
   if (dupKinds.length >= 5) {
     const tot = dupKinds.reduce((s, b) => s + b.monthly, 0);
     out.push({ id: 'subs-many', area: 'spending', severity: 'info', title: `${dupKinds.length} subscriptions`, detail: `${fmt0(tot)} a month. Which ones do you truly use?`, yearly: Math.round(tot * 12 * 0.25) });
+  }
+
+  // Bills that have stopped appearing in the bank data — probably cancelled or switched.
+  if (v.txns.length) {
+    const lastDay = v.txns.reduce((m, t) => (t.date > m ? t.date : m), '0000');
+    for (const b of activeBills(v)) {
+      if (!b.match || b.monthly <= 0) continue;
+      const seen = v.txns.filter((t) => t.pence < 0 && t.desc.toUpperCase().includes(b.match!.toUpperCase())).map((t) => t.date).sort();
+      if (seen.length >= 2 && daysUntil(lastDay, seen[seen.length - 1]) > 75) {
+        const repl = activeBills(v).find((x) => x.kind === b.kind && x.id !== b.id && x.auto);
+        out.push({ id: `gone-${b.id}`, area: 'bills', severity: 'info',
+          title: `${b.provider}: no payments since ${seen[seen.length - 1]}`,
+          detail: repl ? `Did you switch to ${repl.provider}? Open Bills → ${b.provider} → “I’ve switched provider” to keep your records and savings accurate.` : 'Cancelled or switched? Mark it as ended in Bills so it stops counting.' });
+      }
+    }
   }
 
   if (!cur) return finish(out, v);
@@ -218,7 +233,7 @@ export function buildInsights(v: Vault, today = todayISO()): Insight[] {
   }
 
   // ---- Planet
-  const energy = v.bills.filter((b) => b.kind === 'energy');
+  const energy = activeBills(v).filter((b) => b.kind === 'energy');
   if (energy.length) {
     const hasGreen = energy.some((b) => /green|renewable|octopus|ecotricity|good energy/i.test(`${b.provider} ${b.note ?? ''}`));
     if (!hasGreen) out.push({ id: 'green', area: 'planet', severity: 'info', title: 'Consider a renewable electricity tariff',

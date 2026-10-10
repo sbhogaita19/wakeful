@@ -194,3 +194,6 @@ code, kbd { font-family: var(--mono); background: var(--inset); border: 1px soli
 .menu .navbtn { padding: 9px 16px; margin: 0; border: 0; }
 .menu .navbtn.on { color: var(--accent); }
 @media (prefers-reduced-motion: no-preference) { .bar > i { transition: width .5s ease; } }
+
+.dropveil { position: fixed; inset: 0; z-index: 60; background: color-mix(in srgb, var(--bg) 80%, transparent); backdrop-filter: blur(6px); display: grid; place-items: center; pointer-events: none; }
+.dropveil > div { border: 1px dashed var(--accent); padding: 40px 56px; color: var(--accent); font-family: var(--mono); letter-spacing: .18em; text-transform: uppercase; font-size: 13px; background: var(--accent-bg); }

@@ -1,11 +1,11 @@
 import { BENCH } from './benchmarks';
-import type { Vault } from '../types';
+import { activeBills, type Vault } from '../types';
 
 /** Rough annual household CO2e from energy bills, in kg. Estimate from £ spend and unit rates. */
 export function energyCarbon(v: Vault): { kg: number; basis: string } | null {
   let kg = 0;
   let any = false;
-  for (const b of v.bills.filter((x) => x.kind === 'energy')) {
+  for (const b of activeBills(v).filter((x) => x.kind === 'energy')) {
     const fuel = b.fuel;
     const unit = b.unitRate;
     if (!fuel || !unit) continue;

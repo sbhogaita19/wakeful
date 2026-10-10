@@ -67,6 +67,14 @@ export async function updatePassphrase(oldPass: string, newPass: string) {
   return next;
 }
 
+/** Decrypt a backup file in memory (nothing is stored) so it can be merged into the open vault. */
+export async function readBackup(text: string, secret: string, via: 'pass' | 'recovery'): Promise<Vault> {
+  const s = JSON.parse(text) as Stored;
+  if (s.v !== 1 || !s.wraps || !s.data) throw new Error('Not a Wakeful backup');
+  const { vault } = await open<Vault>(s, secret, via);
+  return normaliseVault(vault);
+}
+
 export async function exportBackup(): Promise<string> {
   const s = await get();
   if (!s) throw new Error('No vault');

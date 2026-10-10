@@ -346,3 +346,69 @@ describe('children', () => {
     expect(Object.keys(b.split).sort()).toEqual(['m1', 'm2']);
   });
 });
+
+import { mergeVaults, mergeSummary } from '../src/lib/merge';
+import type { Vault } from '../src/types';
+import { normaliseVault } from '../src/lib/vaultStore';
+import { newRecoveryKey } from '../src/lib/crypto';
+describe('merge backup', () => {
+  const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
+  it('adds only what is new, and is idempotent', () => {
+    const a = demoVault();
+    const b = clone(a);
+    b.txns.push({ id: 'new1', accountId: 'a1', date: '2026-09-29', desc: 'NEW SHOP', pence: -1234, category: 'Shopping', src: 'csv' });
+    b.payslips.push({ id: 'new-ps', memberId: 'm1', date: '2026-09-30', employer: 'Acme Design Ltd', gross: 445800, tax: 63900, ni: 25700, pension: 22300, studentLoan: 0, otherDeductions: 0, net: 342000 });
+    b.accounts.push({ id: 'z1', name: 'New ISA', bank: 'other', kind: 'isa', ownerId: 'm2', balances: [{ date: '2026-09-30', pence: 500000 }] });
+    const m = mergeVaults(a, b);
+    expect(m.report.txns).toBe(1);
+    expect(m.report.payslips).toBe(1);
+    expect(m.report.accounts).toBe(1);
+    expect(m.report.dupes).toBe(a.txns.length);
+    expect(mergeSummary(m.report)).toMatch(/1 transactions/);
+    const again = mergeVaults(m.vault, b);
+    expect(again.report.txns).toBe(0);
+    expect(again.report.accounts).toBe(0);
+    expect(again.report.payslips).toBe(0);
+    expect(again.vault.txns).toHaveLength(m.vault.txns.length);
+  });
+
+  it('matches people by name across devices and re-points their data', () => {
+    const a = { ...emptyVault(), household: { name: 'A', members: [{ id: 'm1', name: 'Asha' }], properties: [{ id: 'p1', name: 'Home' }] } };
+    const b = { ...emptyVault(), household: { name: 'B', members: [{ id: 'm1', name: 'Ben' }, { id: 'x9', name: 'Asha' }], properties: [{ id: 'p1', name: 'Home' }] } };
+    b.accounts = [{ id: 'acc1', name: 'Ben current', bank: 'monzo', kind: 'current', ownerId: 'm1', balances: [] }, { id: 'acc2', name: 'Asha current', bank: 'starling', kind: 'current', ownerId: 'x9', balances: [] }];
+    b.payslips = [{ id: 'p', memberId: 'm1', date: '2026-09-25', employer: 'NHS', gross: 300000, tax: 0, ni: 0, pension: 0, studentLoan: 0, otherDeductions: 0, net: 250000 }];
+    const m = mergeVaults(a, b);
+    const ben = m.vault.household.members.find((x) => x.name === 'Ben')!;
+    expect(m.vault.household.members).toHaveLength(2);                     // Asha matched by name, Ben added
+    expect(ben.id).not.toBe('m1');                                          // id collided with Asha's m1, so it got a new one
+    expect(m.vault.accounts.find((x) => x.name === 'Ben current')!.ownerId).toBe(ben.id);
+    expect(m.vault.accounts.find((x) => x.name === 'Asha current')!.ownerId).toBe('m1');
+    expect(m.vault.payslips[0].memberId).toBe(ben.id);
+  });
+
+  it('keeps this device’s values, fills gaps, merges bill history and ended bills', () => {
+    const a = demoVault();
+    const b = clone(a);
+    b.budget.Groceries = 99999;                       // disagreement: a wins
+    b.budget['Pets'] = 4000;                           // only in b: added
+    b.bills[0].history.push({ date: '2026-09-15', monthly: 14000 });
+    b.bills[2].endedOn = '2026-09-30';                 // switched on the other device
+    const m = mergeVaults(a, b);
+    expect(m.vault.budget.Groceries).toBe(a.budget.Groceries);
+    expect(m.vault.budget['Pets']).toBe(4000);
+    expect(m.vault.bills[0].history.some((h) => h.date === '2026-09-15')).toBe(true);
+    expect(m.vault.bills[2].endedOn).toBe('2026-09-30');
+    expect(m.report.kept).toBeGreaterThan(0);
+  });
+
+  it('end to end: encrypt a backup, decrypt it with its own passphrase, merge', async () => {
+    const other = demoVault();
+    other.txns.push({ id: 'only-other', accountId: 'a2', date: '2026-09-30', desc: 'COFFEE', pence: -350, category: 'Eating out', src: 'csv' });
+    const { stored } = await seal(other, 'other device passphrase', 1000);
+    const back = normaliseVault((await open<Vault>(JSON.parse(JSON.stringify(stored)), 'other device passphrase', 'pass')).vault);
+    const m = mergeVaults(demoVault(), back);
+    expect(m.report.txns).toBe(1);
+    await expect(open(stored, 'wrong', 'pass')).rejects.toBeTruthy();
+    expect(newRecoveryKey()).toBeTruthy();
+  });
+});

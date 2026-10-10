@@ -79,7 +79,7 @@ function RestoreLink({ s, msg, setMsg }: { s: ReturnType<typeof useStore>; msg: 
   return (
     <div className="note">
       Have a backup? <label style={{ color: 'var(--accent)', cursor: 'pointer' }}>Restore it
-        <input type="file" accept=".wakeful,application/json" hidden onChange={async (e) => {
+        <input type="file" hidden onChange={async (e) => {
           const f = e.target.files?.[0]; if (!f) return;
           try { await s.restore(await f.text()); setMsg(''); } catch { setMsg('That file is not a Wakeful backup.'); }
         }} /></label>

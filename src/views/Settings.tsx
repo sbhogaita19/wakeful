@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useStore } from '../store';
 import { Card, Field, Head } from '../components/ui';
-import { exportBackup, updatePassphrase } from '../lib/vaultStore';
+import { exportBackup, readBackup, updatePassphrase } from '../lib/vaultStore';
+import { mergeSummary, mergeVaults, type MergeReport } from '../lib/merge';
+import type { Vault } from '../types';
 import { passphraseProblem } from '../lib/crypto';
 import { uid } from '../lib/money';
 import { getPref, setPref, type ThemePref } from '../theme';
@@ -77,6 +79,8 @@ export function Settings() {
         </div>
       </Card>
 
+      {!demo && <MergeCard />}
+
       {!demo && (
         <Card title="Backup & erase">
           <div className="row"><button className="btn" onClick={backup}>Download encrypted backup</button>
@@ -90,5 +94,72 @@ export function Settings() {
       )}
       <p className="note">Wakeful gives general information, not financial advice. Open source (MIT).</p>
     </>
+  );
+}
+
+function MergeCard() {
+  const { vault, update } = useStore();
+  const [text, setText] = useState('');
+  const [fileName, setFileName] = useState('');
+  const [secret, setSecret] = useState('');
+  const [via, setVia] = useState<'pass' | 'recovery'>('pass');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const [preview, setPreview] = useState<{ merged: Vault; report: MergeReport } | null>(null);
+  const [done, setDone] = useState<{ report: MergeReport; before: Vault } | null>(null);
+
+  const reset = () => { setText(''); setFileName(''); setSecret(''); setPreview(null); setErr(''); };
+  const check = async () => {
+    setBusy(true); setErr(''); setPreview(null);
+    try {
+      const other = await readBackup(text, secret, via);
+      const { vault: merged, report } = mergeVaults(vault, other);
+      setPreview({ merged, report });
+    } catch { setErr(via === 'pass' ? 'Could not open that backup — wrong passphrase, or not a Wakeful backup.' : 'Could not open that backup with that recovery key.'); }
+    finally { setBusy(false); }
+  };
+  const apply = () => {
+    if (!preview) return;
+    const before = vault;
+    update(() => preview.merged);
+    setDone({ report: preview.report, before });
+    reset();
+  };
+
+  return (
+    <Card title="Merge a backup" sub="combine another device’s data into this one">
+      <p className="note" style={{ marginBottom: 12 }}>Download an encrypted backup on your other device (Settings → Download encrypted backup), bring the file here, and enter <b>that device’s</b> passphrase. New items are added; duplicates are skipped; where both devices disagree, this device’s version is kept. Nothing is uploaded anywhere.</p>
+      {done && (
+        <div className="banner" style={{ marginBottom: 12 }}>
+          <span>Merged: {mergeSummary(done.report)}.{done.report.dupes ? ` ${done.report.dupes} duplicates skipped.` : ''}</span>
+          <button className="btn sm" onClick={() => { update(() => done.before); setDone(null); }}>Undo</button>
+        </div>
+      )}
+      <div className="stack">
+        <label className="drop" style={{ cursor: 'pointer', padding: 20 }}>{fileName ? <b>{fileName}</b> : <><b>Choose a backup file</b> (.wakeful)</>}
+          <input type="file" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; setText(await f.text()); setFileName(f.name); setPreview(null); setErr(''); e.target.value = ''; }} /></label>
+        {text && (
+          <>
+            <Field label={via === 'pass' ? 'Passphrase of that backup' : 'Recovery key of that backup'}><input type={via === 'pass' ? 'password' : 'text'} value={secret} onChange={(e) => { setSecret(e.target.value); setPreview(null); }} autoComplete="off" /></Field>
+            <div className="row">
+              <button className="btn primary" disabled={!secret || busy} onClick={check}>{busy ? 'Checking…' : 'Check what will merge'}</button>
+              <button className="btn ghost" onClick={() => { setVia(via === 'pass' ? 'recovery' : 'pass'); setSecret(''); setPreview(null); }}>{via === 'pass' ? 'Use recovery key' : 'Use passphrase'}</button>
+              <button className="btn ghost" onClick={reset}>Cancel</button>
+            </div>
+          </>
+        )}
+        {err && <div className="err">{err}</div>}
+        {preview && (
+          <div className="card" style={{ background: 'var(--inset)' }}>
+            <div className="eyebrow" style={{ marginBottom: 8 }}>This would add</div>
+            <p><b>{mergeSummary(preview.report)}</b></p>
+            <p className="note" style={{ marginTop: 6 }}>{preview.report.dupes} duplicate transactions skipped{preview.report.kept ? ` · ${preview.report.kept} differences where this device’s version is kept` : ''}{preview.report.billsEnded ? ` · ${preview.report.billsEnded} bills marked ended` : ''}.</p>
+            {mergeSummary(preview.report) === 'nothing new' && !preview.report.billsEnded
+              ? <p className="note" style={{ marginTop: 10 }}>This device already has everything in that backup.</p>
+              : <div className="row" style={{ marginTop: 12 }}><button className="btn primary" onClick={apply}>Merge now</button></div>}
+          </div>
+        )}
+      </div>
+    </Card>
   );
 }

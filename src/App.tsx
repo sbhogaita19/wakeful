@@ -70,7 +70,7 @@ export function App() {
       <main className="main">
         <div className="wrap">
           <div className="sec">
-            <span className="n">§ {String(idx + 1).padStart(2, '0')}</span><span>{ORDER[idx].l}</span><span className="rule" />
+            <span className="n">{ORDER[idx].l}</span><span className="rule" />
             {prev && <button onClick={() => go(prev.t)}>← {prev.l}</button>}
             {next && <button onClick={() => go(next.t)}>{next.l} →</button>}
           </div>

@@ -1,0 +1,16 @@
+node_modules
+dist
+.DS_Store
+.env*
+*.local
+# Never commit real financial data
+*.pdf
+*.kept
+*.ofx
+*.qif
+/data/
+# Fake sample CSVs are allowed
+!samples/*.csv
+*.csv
+!samples/*.csv
+.claude/

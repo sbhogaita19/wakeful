@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Wakeful</string>
+    <string name="title_activity_main">Wakeful</string>
+    <string name="package_name">app.wakeful.home</string>
+    <string name="custom_url_scheme">app.wakeful.home</string>
+</resources>

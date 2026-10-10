@@ -1,0 +1,9 @@
+#!/bin/sh
+# Block real financial data from being committed.
+bad=$(git diff --cached --name-only --diff-filter=ACM | grep -Ei '\.(pdf|ofx|qif|kept)$|^data/|(^|/)[^/]*statement[^/]*\.csv$' | grep -v '^samples/')
+if [ -n "$bad" ]; then
+  echo "Blocked: possible real financial data staged:"; echo "$bad"; exit 1
+fi
+bad=$(git diff --cached --name-only --diff-filter=ACM | grep -i '\.csv$' | grep -v '^samples/')
+if [ -n "$bad" ]; then echo "Blocked: CSV outside samples/:"; echo "$bad"; exit 1; fi
+exit 0

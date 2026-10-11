@@ -222,3 +222,12 @@ label.row > input[type=checkbox] { flex: none; margin-top: 4px; }
 .trend-labels { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; margin-top: 8px; }
 .trend-labels .end { text-align: right; }
 .trend-labels .chg { grid-column: 1 / -1; text-align: center; }
+
+.budget-row { padding: 12px 0; border-top: 1px solid var(--line); display: grid; gap: 8px; }
+.budget-row:first-child { border-top: 0; padding-top: 0; }
+.budget-top { display: grid; grid-template-columns: 1fr auto 120px; gap: 12px; align-items: center; }
+.budget-name { font-weight: 500; color: var(--text); }
+.budget-month { font-size: 13px; white-space: nowrap; }
+.budget-amt { text-align: right; padding: 7px 10px; }
+.budget-row .cat-note { padding: 6px 10px; font-size: 13px; }
+@media (max-width: 860px) { .budget-top { grid-template-columns: 1fr 110px; } .budget-month { grid-column: 1; grid-row: 2; } .budget-name { grid-column: 1; } .budget-amt { grid-column: 2; grid-row: 1 / span 2; } }

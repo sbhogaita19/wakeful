@@ -42,12 +42,21 @@ export function Spending() {
             const avg = avgSpendByCategory(x.txns, latestMonth(x.txns) ?? m);
             return { ...x, budget: Object.fromEntries(Object.entries(avg).map(([c, a]) => [c, Math.round((a * 0.97) / 500) * 500])) };
           })}>Suggest from my history</button>}>
-          <table className="table"><thead><tr><th>Category</th><th className="num">Budget</th><th className="num hide-s">This month</th></tr></thead>
-            <tbody>{allCategories(v).filter((c) => !NON_SPEND.has(c)).map((c) => (
-              <tr key={c}><td><i className="dot" style={{ background: colorOf(c) }} /> {c}
-                  <input className="cat-note" placeholder="What it covers (optional)" defaultValue={v.categoryNotes?.[c] ?? ''}
-                    onBlur={(e) => update((x) => ({ ...x, categoryNotes: { ...x.categoryNotes, [c]: e.target.value.trim() } }))} /></td>
-</tr>))}</tbody></table>
+          <div className="budget-list">
+            {allCategories(v).filter((c) => !NON_SPEND.has(c)).map((c) => (
+              <div className="budget-row" key={c}>
+                <div className="budget-top">
+                  <span className="budget-name"><i className="dot" style={{ background: colorOf(c) }} /> {c}</span>
+                  <span className="budget-month mute">{fmt0(cats[c] ?? 0)} this month</span>
+                  <input className="budget-amt" inputMode="decimal" placeholder="£0" aria-label={`${c} monthly budget`}
+                    defaultValue={v.budget[c] ? (v.budget[c] / 100).toString() : ''}
+                    onBlur={(e) => { const p = parseMoney(e.target.value); update((x) => ({ ...x, budget: { ...x.budget, [c]: p && p > 0 ? p : 0 } })); }} />
+                </div>
+                <input className="cat-note" placeholder="What it covers (optional)" aria-label={`${c} description`} defaultValue={v.categoryNotes?.[c] ?? ''}
+                  onBlur={(e) => update((x) => ({ ...x, categoryNotes: { ...x.categoryNotes, [c]: e.target.value.trim() } }))} />
+              </div>
+            ))}
+          </div>
           <AddCategory />
           <p className="note" style={{ marginTop: 12 }}>The “suggest” button sets each budget just under your recent average — a gentle nudge, not a squeeze.</p>
         </Card>

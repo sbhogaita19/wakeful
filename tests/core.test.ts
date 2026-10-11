@@ -460,3 +460,14 @@ describe('supermarkets', () => {
     expect(g('AMAZON MKTPLACE')).toBe('Shopping');
   });
 });
+
+import { readFileSync as readSrc } from 'node:fs';
+describe('budget editor regression', () => {
+  it('Spending still renders an editable budget amount and description for every category', () => {
+    const src = readSrc('src/views/Spending.tsx', 'utf8');
+    expect(src).toContain('className="budget-amt"');
+    expect(src).toContain('monthly budget');
+    expect(src).toMatch(/budget: \{ \.\.\.x\.budget, \[c\]/);
+    expect(src).toContain('categoryNotes');
+  });
+});

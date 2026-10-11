@@ -30,7 +30,7 @@ export function buildInsights(v: Vault, today = todayISO()): Insight[] {
 
   // ---- Bills: contracts, price rises, benchmarks
   for (const b of activeBills(v)) {
-    const label = `${b.provider} (${b.kind.replace('-', ' ')})`;
+    const label = `${b.provider} (${b.fuel ?? b.kind.replace('-', ' ')})`;
     if (b.contractEnd) {
       const d = daysUntil(b.contractEnd, today);
       if (d < 0 && b.kind !== 'council-tax') {

@@ -1,4 +1,7 @@
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
+
+/** Native helper (android/.../FileSharePlugin.java): writes the file to private cache and opens the share sheet. */
+const FileShare = registerPlugin<{ share(o: { name: string; data: string; mime: string; title: string }): Promise<void> }>('FileShare');
 
 const b64 = (data: Uint8Array | string): string => {
   const bytes = typeof data === 'string' ? new TextEncoder().encode(data) : data;
@@ -15,12 +18,7 @@ export type SaveResult = 'shared' | 'downloaded';
  */
 export async function saveFile(name: string, data: Uint8Array | string, mime: string, title = name): Promise<SaveResult> {
   if (Capacitor.isNativePlatform()) {
-    const { Filesystem, Directory } = await import('@capacitor/filesystem');
-    const { Share } = await import('@capacitor/share');
-    await Filesystem.writeFile({ path: name, data: b64(data), directory: Directory.Cache });
-    const { uri } = await Filesystem.getUri({ path: name, directory: Directory.Cache });
-    try { await Share.share({ title, url: uri, dialogTitle: title }); }
-    finally { setTimeout(() => { Filesystem.deleteFile({ path: name, directory: Directory.Cache }).catch(() => {}); }, 120_000); }
+    await FileShare.share({ name, data: b64(data), mime, title });
     return 'shared';
   }
   const blob = new Blob([typeof data === 'string' ? data : (data as BlobPart)], { type: mime });

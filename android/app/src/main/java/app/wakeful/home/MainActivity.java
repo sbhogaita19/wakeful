@@ -9,6 +9,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         // Block screenshots, screen recording and the recents-screen thumbnail: this app shows finances.
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE);
+        registerPlugin(FileSharePlugin.class);
         super.onCreate(savedInstanceState);
     }
 }

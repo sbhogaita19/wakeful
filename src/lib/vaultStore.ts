@@ -1,6 +1,7 @@
 import type { Vault } from '../types';
 import { emptyVault } from '../types';
 import { changePass, encryptJson, open, seal, type Stored } from './crypto';
+import { TAKEAWAY_RE, merchantKey } from './categorise';
 
 const DB = 'wakeful';
 const STORE = 'vault';
@@ -37,7 +38,10 @@ export const hasVault = async () => !!(await get());
 /** Fill gaps so older/imported vaults always have the full shape. */
 export function normaliseVault(v: Partial<Vault>): Vault {
   const e = emptyVault();
-  return { ...e, ...v, customCategories: v.customCategories ?? [], categoryNotes: v.categoryNotes ?? {}, decisions: v.decisions ?? {}, aliases: v.aliases ?? {}, v: 2, household: { ...e.household, ...v.household }, values: { ...e.values, ...v.values }, settings: { ...e.settings, ...v.settings } } as Vault;
+  const ruled = new Set((v.rules ?? []).map((r) => r.match));
+  // move existing takeaway-type rows out of 'Eating out' unless the user has set a rule for that merchant
+  const txns = (v.txns ?? []).map((t) => (t.category === 'Eating out' && !ruled.has(merchantKey(t.desc)) && TAKEAWAY_RE.test(t.desc) ? { ...t, category: 'Takeaways' } : t));
+  return { ...e, ...v, txns, customCategories: v.customCategories ?? [], categoryNotes: v.categoryNotes ?? {}, decisions: v.decisions ?? {}, aliases: v.aliases ?? {}, v: 2, household: { ...e.household, ...v.household }, values: { ...e.values, ...v.values }, settings: { ...e.settings, ...v.settings } } as Vault;
 }
 
 export async function createVault(pass: string, vault: Vault = emptyVault()) {

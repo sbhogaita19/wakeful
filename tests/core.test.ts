@@ -59,7 +59,7 @@ describe('categorise', () => {
     expect(categorise('TESCO STORES 1234', -500, [])).toBe('Groceries');
     expect(categorise('OXFAM DONATION', -500, [])).toBe('Giving');
     expect(categorise('ACME SALARY', 300000, [])).toBe('Income');
-    expect(categorise('UBER EATS', -900, [])).toBe('Eating out');
+    expect(categorise('UBER EATS', -900, [])).toBe('Takeaways');
     expect(categorise('RANDOM SHOP', -900, [{ match: merchantKey('RANDOM SHOP'), category: 'Health' }])).toBe('Health');
   });
   it('dedupes re-imports but keeps genuine same-day repeats', () => {
@@ -421,5 +421,42 @@ describe('OCR text clean-up', () => {
     expect(lines.some((l) => l.includes('Net Pay £2,702.00'))).toBe(true);
     const g = parsePayslipLines(lines);
     expect(g).toMatchObject({ gross: 355500, net: 270200 });
+  });
+});
+
+describe('food split', () => {
+  it('separates supermarkets, takeaways and eating out', () => {
+    expect(categorise('TESCO STORES 123', -5000, [])).toBe('Groceries');
+    expect(categorise('DELIVEROO', -2200, [])).toBe('Takeaways');
+    expect(categorise('UBER EATS LONDON', -1800, [])).toBe('Takeaways');
+    expect(categorise('GREGGS', -450, [])).toBe('Takeaways');
+    expect(categorise('COSTA COFFEE', -380, [])).toBe('Eating out');
+    expect(categorise('THE RED LION PUB', -2400, [])).toBe('Eating out');
+  });
+  it('moves old takeaway rows but respects the user’s own rule', () => {
+    const base = { ...emptyVault(), txns: [
+      { id: '1', accountId: 'a', date: '2026-09-01', desc: 'DELIVEROO', pence: -2000, category: 'Eating out', src: 'csv' as const },
+      { id: '2', accountId: 'a', date: '2026-09-02', desc: 'NANDOS', pence: -2000, category: 'Eating out', src: 'csv' as const },
+    ] };
+    const n = normaliseVault(base);
+    expect(n.txns.find((t) => t.id === '1')!.category).toBe('Takeaways');
+    expect(n.txns.find((t) => t.id === '2')!.category).toBe('Eating out');
+    const ruled = normaliseVault({ ...base, rules: [{ match: merchantKey('DELIVEROO'), category: 'Eating out' }] });
+    expect(ruled.txns.find((t) => t.id === '1')!.category).toBe('Eating out');
+  });
+});
+
+describe('supermarkets', () => {
+  const g = (d: string) => categorise(d, -1500, []);
+  it('recognises UK supermarkets however the bank prints them', () => {
+    for (const d of ['TESCO STORES 3214', 'TESCO EXPRESS', 'OCADO RETAIL', 'SAINSBURYS S/MKTS', "SAINSBURY'S LOCAL", 'ASDA STORES', 'LIDL GB', 'ALDI STORES', 'WAITROSE', 'MORRISONS DAILY', 'ICELAND FOODS', 'CO-OP GROUP FOOD', 'SPAR', 'COSTCUTTER', 'WHOLE FOODS', 'AMAZON FRESH', 'M&S SIMPLY FOOD'])
+      expect(g(d), d).toBe('Groceries');
+  });
+  it('does not file supermarket phone, bank or fuel as groceries', () => {
+    expect(g('TESCO MOBILE')).toBe('Bills');
+    expect(g('TESCO BANK')).toBe('Debt payments');
+    expect(g('TESCO PFS PETROL')).toBe('Transport');
+    expect(g('SAINSBURYS PETROL')).toBe('Transport');
+    expect(g('AMAZON MKTPLACE')).toBe('Shopping');
   });
 });

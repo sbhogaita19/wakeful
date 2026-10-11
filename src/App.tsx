@@ -10,6 +10,7 @@ import { Insights } from './views/Insights';
 import { Values } from './views/Values';
 import { Income } from './views/Income';
 import { Import } from './views/Import';
+import { Share } from './views/Share';
 import { Settings } from './views/Settings';
 import type { Tab } from './nav';
 import { isDark, setPref } from './theme';
@@ -24,6 +25,7 @@ const ORDER: { t: Tab; l: string; i: string; main?: boolean }[] = [
   { t: 'values', l: 'Values', i: 'heart' },
   { t: 'income', l: 'Income', i: 'work' },
   { t: 'import', l: 'Import', i: 'upload' },
+  { t: 'share', l: 'Share', i: 'upload' },
   { t: 'settings', l: 'Settings', i: 'gear' },
 ];
 
@@ -54,7 +56,7 @@ export function App() {
   const go = (t: Tab) => { setTab(t); setMenu(false); document.querySelector('.main')?.scrollTo(0, 0); };
   const idx = ORDER.findIndex((n) => n.t === tab);
   const prev = ORDER[idx - 1], next = ORDER[idx + 1];
-  const View = { home: Home, spend: Spending, bills: Bills, wealth: Wealth, aware: Insights, values: Values, income: Income, import: Import, settings: Settings }[tab];
+  const View = { home: Home, spend: Spending, bills: Bills, wealth: Wealth, aware: Insights, values: Values, income: Income, import: Import, share: Share, settings: Settings }[tab];
   const group = (main: boolean) => ORDER.filter((n) => !!n.main === main);
   const toggleTheme = () => { setPref(isDark() ? 'light' : 'dark'); setTick((x) => x + 1); };
   const exit = s.demo ? s.exit : s.lock;

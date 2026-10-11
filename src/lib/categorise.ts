@@ -1,5 +1,8 @@
 import type { Rule, Txn } from '../types';
 
+/** Delivery apps and fast food: kept apart from restaurants, cafés and pubs. */
+export const TAKEAWAY_RE = /\b(uber eats|deliveroo|just ?eat|mcdonald|kfc|burger king|domino|pizza|subway|five guys|greggs|takeaway|take away|chippy|chinese|kebab|wing stop|wingstop|papa john|taco bell)\b/i;
+
 const K: [RegExp, string][] = [
   [/\b(dividends?|div payment|div\.? pmt)\b/i, 'Dividends'],
   [/\b(salary|wages|payroll|child benefit|hmrc (tax )?refund|interest paid|gross interest)\b/i, 'Income'],
@@ -7,8 +10,13 @@ const K: [RegExp, string][] = [
   [/\b(mortgage|rent|council tax|landlord|letting|ground rent|service charge)\b/i, 'Housing'],
   [/\b(credit card|barclaycard|mbna|capital one|amex|american express|loan repayment|klarna|clearpay|paypal credit|student loan|santander cards)\b/i, 'Debt payments'],
   [/\b(overdraft|unarranged|monthly fee|account fee|interest charged|late fee|foreign (transaction|usage) fee|returned payment)\b/i, 'Fees & interest'],
-  [/\b(uber eats|deliveroo|just ?eat|mcdonald|greggs|starbucks|costa|pret|nando|pizza|kfc|burger king|wagamama|restaurant|cafe|caf[eé]|pub|coffee|bakery|takeaway|domino|subway|five guys|wetherspoon|itsu|leon)\b/i, 'Eating out'],
-  [/\b(tesco|sainsbury|asda|aldi|lidl|morrisons|waitrose|ocado|co-?op|iceland|m&s food|marks (&|and) spencer food|farmfoods|booths)\b/i, 'Groceries'],
+  [TAKEAWAY_RE, 'Takeaways'],
+  [/\b(starbucks|costa|pret|nando|wagamama|restaurant|cafe|caf[eé]|pub|coffee|bakery|wetherspoon|itsu|leon|bar & grill|brasserie|bistro|tavern|diner)\b/i, 'Eating out'],
+  // Supermarket brands also sell fuel, phone plans and banking — check those first.
+  [/\b(tesco mobile|tesco insurance|tesco broadband|sainsbury'?s? (energy|insurance)|asda mobile)\b/i, 'Bills'],
+  [/\b(tesco bank|sainsbury'?s? bank|m&s bank|marks (&|and) spencer bank)\b/i, 'Debt payments'],
+  [/\b(pfs|petrol|fuel|filling station|ev charg(e|ing))\b/i, 'Transport'],
+  [/\b(tesco|sainsbury'?s?|asda|aldi|lidl|morrisons|waitrose|ocado|co-?op|iceland|farmfoods|booths|spar|costcutter|nisa|budgens|londis|whole foods|planet organic|abel (&|and) cole|riverford|hello ?fresh|gousto|amazon fresh|(m&s|marks (&|and) spencer) (simply )?food|simply food)\b/i, 'Groceries'],
   [/\b(netflix|spotify|disney|amazon prime|prime video|apple\.com\/bill|icloud|google one|youtube|now tv|audible|dropbox|microsoft 365|openai|anthropic|patreon|puregym|the gym|david lloyd|headspace|calm|insight timer|substack|kindle unlimited)\b/i, 'Subscriptions'],
   [/\b(british gas|edf|octopus|e\.?on|bulb|ovo|scottish power|thames water|severn trent|united utilities|anglian water|yorkshire water|southern water|virgin media|bt group|bt broadband|sky|vodafone|ee limited|o2|three|giffgaff|tv licen[cs]e|aviva|admiral|direct line|insurance|hastings|lv=|broadband|talktalk|plusnet|bt|verisure|adt|ring protect|yale|hive|tado|sse|shell energy|utilita|so energy|utility warehouse|economy 7|ofgem|water plus|affinity water|welsh water|dwr cymru|northumbrian water|wessex water|south west water|nest protect)\b/i, 'Bills'],
   [/\b(tfl|trainline|uber|bolt|shell|bp|esso|texaco|national rail|parking|ringgo|dvla|petrol|fuel|lner|avanti|gwr|southern rail|oyster|ncp)\b/i, 'Transport'],

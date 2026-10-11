@@ -137,7 +137,7 @@ export function demoVault(endMonth = '2026-09'): Vault {
     { id: 'r1', propertyId: 'p1', fuel: 'electricity', date: `${addMonths(endMonth, -2)}-30`, value: 41820 },
     { id: 'r2', propertyId: 'p1', fuel: 'electricity', date: `${endMonth}-30`, value: 42170 },
   ];
-  v.budget = { Groceries: 52000, 'Eating out': 8000, Transport: 14000, Subscriptions: 7500, Shopping: 9000, Health: 3000, Giving: 6000, Entertainment: 4000 };
+  v.budget = { Groceries: 52000, 'Eating out': 5000, Takeaways: 5000, Transport: 14000, Subscriptions: 7500, Shopping: 9000, Health: 3000, Giving: 6000, Entertainment: 4000 };
   v.values = { enabled: true, givingPct: 2, enough: 420000 };
   return v;
 }

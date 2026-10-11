@@ -15,7 +15,7 @@ export interface Cut {
 
 const VIDEO = /netflix|disney|prime video|amazon prime|now tv|apple tv|paramount|britbox|discovery|sky/i;
 const MUSIC = /spotify|apple music|youtube|amazon music|tidal|deezer/i;
-const DISCRETIONARY = new Set(['Subscriptions', 'Entertainment', 'Shopping', 'Eating out', 'Travel', 'Other', 'Health']);
+const DISCRETIONARY = new Set(['Subscriptions', 'Entertainment', 'Shopping', 'Eating out', 'Takeaways', 'Travel', 'Other', 'Health']);
 
 /** Things that could be cancelled, reduced or reviewed, each with a yearly saving. */
 export function buildCuts(v: Vault): Cut[] {
@@ -71,9 +71,13 @@ export function buildCuts(v: Vault): Cut[] {
   // Habits to trim, not cancel: takeaways
   const cur = latestMonth(v.txns);
   if (cur) {
-    const eat = spendByCategory(v.txns, cur)['Eating out'] ?? 0;
+    const cats = spendByCategory(v.txns, cur);
+    const take = cats['Takeaways'] ?? 0;
+    if (take > 8000) out.push({ id: 'takeaways', action: 'reduce', yearly: Math.round(take * 0.3 * 12),
+      title: `Takeaways: ${fmt0(take)} this month`, why: 'Delivery fees and mark-ups add up. Cutting a third is realistic — cook one extra night a week. Saving shown is 30%.' });
+    const eat = cats['Eating out'] ?? 0;
     if (eat > 15000) out.push({ id: 'eatout', action: 'reduce', yearly: Math.round(eat * 0.25 * 12),
-      title: `Eating out: ${fmt0(eat)} this month`, why: 'Cutting a quarter is realistic — fewer takeaways, same treats. Saving shown is 25%.' });
+      title: `Eating out: ${fmt0(eat)} this month`, why: 'Cutting a quarter is realistic — fewer meals out, same treats. Saving shown is 25%.' });
   }
 
   const dedup = new Map(out.map((c) => [c.id, c]));

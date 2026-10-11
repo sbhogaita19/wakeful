@@ -160,7 +160,7 @@ export const emptyVault = (): Vault => ({
 });
 
 export const CATEGORIES = [
-  'Income', 'Dividends', 'Housing', 'Bills', 'Groceries', 'Eating out', 'Transport', 'Subscriptions',
+  'Income', 'Dividends', 'Housing', 'Bills', 'Groceries', 'Eating out', 'Takeaways', 'Transport', 'Subscriptions',
   'Shopping', 'Health', 'Entertainment', 'Travel', 'Family', 'Giving', 'Debt payments',
   'Fees & interest', 'Cash', 'Savings & transfers', 'Other',
 ] as const;
@@ -171,7 +171,7 @@ export const NON_SPEND = new Set<string>(['Income', 'Dividends', 'Savings & tran
 
 export const CATEGORY_COLOR: Record<string, string> = {
   Income: '#4fd1a5', Dividends: '#9be3b8', Housing: '#6aa7ff', Bills: '#8b8cff', Groceries: '#7bd88f',
-  'Eating out': '#f5b14c', Transport: '#5ec8e5', Subscriptions: '#c58bff',
+  'Eating out': '#f5b14c', Takeaways: '#f08a5d', Transport: '#5ec8e5', Subscriptions: '#c58bff',
   Shopping: '#ff8fb1', Health: '#ff7a7a', Entertainment: '#ffd166', Travel: '#4dd0c8',
   Family: '#e0a96d', Giving: '#e6c27a', 'Debt payments': '#ef6f6f', 'Fees & interest': '#ff5d73',
   Cash: '#9aa4b2', 'Savings & transfers': '#6e7a8a', Other: '#7d8794',

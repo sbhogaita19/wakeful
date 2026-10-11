@@ -6,6 +6,7 @@ import { mergeSummary, mergeVaults, type MergeReport } from '../lib/merge';
 import type { Vault } from '../types';
 import { passphraseProblem } from '../lib/crypto';
 import { uid } from '../lib/money';
+import { saveFile } from '../lib/saveFile';
 import { getPref, setPref, type ThemePref } from '../theme';
 
 export function Settings() {
@@ -17,12 +18,8 @@ export function Settings() {
   const [theme, setTheme] = useState<ThemePref>(getPref());
 
   const backup = async () => {
-    const blob = new Blob([await exportBackup()], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `wakeful-backup-${new Date().toISOString().slice(0, 10)}.wakeful`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    try { await saveFile(`wakeful-backup-${new Date().toISOString().slice(0, 10)}.wakeful`, await exportBackup(), 'application/json', 'Wakeful encrypted backup'); }
+    catch (e) { if (!(e instanceof Error && /cancel|dismiss/i.test(e.message))) alert('Couldn’t save the backup.'); }
   };
 
   return (

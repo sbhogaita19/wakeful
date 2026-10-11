@@ -29,7 +29,8 @@ export function Bills() {
 
   const suggestions = useMemo(() => {
     const have = new Set(v.bills.map((b) => (b.match ?? '').toUpperCase()).filter(Boolean));
-    return recurring(v.txns).filter((r) => ['Bills', 'Subscriptions', 'Housing'].includes(r.category) && ![...have].some((h) => r.key.includes(h))).slice(0, 6);
+    const hasMortgage = v.accounts.some((x) => x.kind === 'mortgage'); // already tracked in Wealth, so don't suggest it as a bill
+    return recurring(v.txns).filter((r) => ['Bills', 'Subscriptions', 'Housing'].includes(r.category) && !(hasMortgage && /mortgage/i.test(r.label)) && ![...have].some((h) => r.key.includes(h))).slice(0, 6);
   }, [v.txns, v.bills]);
 
   return (

@@ -11,12 +11,15 @@ import { uid } from './money';
 export type DocKind = 'statement' | 'payslip' | 'bill' | 'unknown';
 
 export interface FileResult { name: string; kind: DocKind; ok: boolean; message: string; batch?: string; accountId?: string; payslipId?: string; memberId?: string; }
+export interface Draft { id: string; fileName: string; kind: 'payslip' | 'bill'; payslip?: Payslip; bill?: Bill; found: string[]; }
 export interface Report {
+  /** documents read by OCR: shown for you to check before anything is saved */
+  drafts: Draft[];
   files: FileResult[];
   txns: number; dupes: number; review: number;
   billsAdded: number; billsUpdated: number; payslips: number; accounts: number;
 }
-export const emptyReport = (): Report => ({ files: [], txns: 0, dupes: 0, review: 0, billsAdded: 0, billsUpdated: 0, payslips: 0, accounts: 0 });
+export const emptyReport = (): Report => ({ drafts: [], files: [], txns: 0, dupes: 0, review: 0, billsAdded: 0, billsUpdated: 0, payslips: 0, accounts: 0 });
 
 const count = (lines: string[], re: RegExp) => lines.filter((l) => re.test(l)).length;
 
@@ -157,6 +160,30 @@ export function syncBills(v: Vault, report?: Report): Vault {
   return bills === v.bills ? v : { ...v, bills };
 }
 
+const IMAGE = /\.(jpe?g|png|webp|bmp|gif|heic|heif)$/i;
+
+/** OCR'd text can hide misread digits, so a payslip or bill read this way becomes a draft you confirm. */
+function draftFromOcr(v: Vault, name: string, lines: string[], report: Report): FileResult {
+  const kind = classifyLines(lines);
+  if (kind === 'payslip') {
+    const g = parsePayslipLines(lines);
+    const owner = adults(v)[0];
+    const p: Payslip = { id: uid(), memberId: owner.id, date: g.date ?? todayISO(), employer: g.employer ?? '', gross: g.gross ?? 0, tax: g.tax ?? 0, ni: g.ni ?? 0, pension: g.pension ?? 0,
+      studentLoan: g.studentLoan ?? 0, otherDeductions: g.otherDeductions ?? 0, net: g.net ?? 0, basic: g.basic, overtime: g.overtime, bonus: g.bonus, taxCode: g.taxCode };
+    report.drafts.push({ id: p.id, fileName: name, kind: 'payslip', payslip: p, found: g.found });
+    return { name, kind: 'payslip', ok: true, message: `Read from the image — ${g.found.length} fields found. Please check the figures and save.` };
+  }
+  if (kind === 'bill') {
+    const g = parseBillLines(lines);
+    const bill: Bill = { id: uid(), kind: (g.kind ?? 'other') as BillKind, provider: g.provider ?? '', propertyId: v.household.properties[0].id, monthly: g.monthly ?? 0, fuel: g.fuel,
+      unitRate: g.unitRate, standingCharge: g.standingCharge, contractEnd: g.contractEnd, history: [], split: equalSplit(v), auto: true };
+    report.drafts.push({ id: bill.id, fileName: name, kind: 'bill', bill, found: g.found });
+    return { name, kind: 'bill', ok: true, message: `Read from the image — ${g.found.length} fields found. Please check and save.` };
+  }
+  if (kind === 'statement') return { name, kind: 'statement', ok: false, message: 'Bank statements are too error-prone to read from a photo. Use the CSV export instead.' };
+  return { name, kind: 'unknown', ok: false, message: 'Couldn’t find a payslip or bill in that image. Try a flatter, brighter, closer photo of the whole page.' };
+}
+
 /** Take any mix of files and fold them into the vault with no questions asked. */
 export async function ingest(v0: Vault, files: File[]): Promise<{ vault: Vault; report: Report }> {
   const report = emptyReport();
@@ -165,6 +192,12 @@ export async function ingest(v0: Vault, files: File[]): Promise<{ vault: Vault; 
     try {
       const isPdf = /\.pdf$/i.test(f.name) || f.type === 'application/pdf';
       let lines: string[] | null = null;
+      if (IMAGE.test(f.name) || f.type.startsWith('image/')) {
+        const { prepareImage, ocrLines } = await import('./ocr');
+        const text = await ocrLines([await prepareImage(f)]);
+        report.files.push(draftFromOcr(v, f.name, text, report));
+        continue;
+      }
       if (!isPdf) {
         const text = await f.text();
         const csv = /\.(csv|tsv)$/i.test(f.name) || text.includes(',') ? importCsv(text) : null;
@@ -176,7 +209,14 @@ export async function ingest(v0: Vault, files: File[]): Promise<{ vault: Vault; 
       } else {
         const { pdfToLines } = await import('./pdf');
         lines = await pdfToLines(await f.arrayBuffer());
-        if (!lines.length) { report.files.push({ name: f.name, kind: 'unknown', ok: false, message: 'No text in this PDF (a scan?). Export a CSV or type it in.' }); continue; }
+        if (!lines.length) {
+          // a scanned PDF has pictures, not text: read it with OCR (on this device)
+          const { pdfToCanvases } = await import('./pdf');
+          const { ocrLines } = await import('./ocr');
+          const text = await ocrLines(await pdfToCanvases(await f.arrayBuffer()));
+          report.files.push(draftFromOcr(v, f.name, text, report));
+          continue;
+        }
       }
       const kind = classifyLines(lines);
       if (kind === 'payslip') { const r = addPayslip(v, f.name, lines, report); v = r.v; report.files.push(r.res); }

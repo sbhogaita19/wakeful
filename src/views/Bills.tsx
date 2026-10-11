@@ -101,7 +101,7 @@ export function Bills() {
   );
 }
 
-function BillEditor({ bill, isNew, onSave, onDelete, onClose, onSwitch }: { bill: Bill; isNew: boolean; onSave: (b: Bill) => void; onDelete: () => void; onClose: () => void; onSwitch: (b: Bill) => void }) {
+export function BillEditor({ bill, isNew, onSave, onDelete, onClose, onSwitch }: { bill: Bill; isNew: boolean; onSave: (b: Bill) => void; onDelete: () => void; onClose: () => void; onSwitch: (b: Bill) => void }) {
   const { vault: v } = useStore();
   const [b, setB] = useState(bill);
   const [monthly, setMonthly] = useState(pounds(bill.monthly));

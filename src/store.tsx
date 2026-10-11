@@ -30,6 +30,7 @@ interface Ctx {
   busy: boolean;
   undoImport: () => void;
   dismissReport: () => void;
+  dismissDraft: (id: string) => void;
   moveBatch: (batch: string, accountId: string) => void;
   reassignPayslip: (id: string, memberId: string) => void;
 }
@@ -135,6 +136,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     report, busy,
     undoImport: () => { if (before.current) { const b = before.current; update(() => b); before.current = null; } setReport(null); },
     dismissReport: () => setReport(null),
+    dismissDraft: (id) => setReport((r) => (r ? { ...r, drafts: r.drafts.filter((d) => d.id !== id) } : r)),
     moveBatch: (batch, accountId) => update((x) => ({ ...x, txns: x.txns.map((t) => (t.batch === batch ? { ...t, accountId } : t)) })),
     reassignPayslip: (id, memberId) => update((x) => ({ ...x, payslips: x.payslips.map((p) => (p.id === id ? { ...p, memberId } : p)) })),
     lock,

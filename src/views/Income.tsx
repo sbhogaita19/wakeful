@@ -60,7 +60,7 @@ export function Income() {
   );
 }
 
-function PayslipEditor({ p, isNew, onSave, onDelete, onClose }: { p: Payslip; isNew: boolean; onSave: (p: Payslip) => void; onDelete: () => void; onClose: () => void }) {
+export function PayslipEditor({ p, isNew, onSave, onDelete, onClose }: { p: Payslip; isNew: boolean; onSave: (p: Payslip) => void; onDelete: () => void; onClose: () => void }) {
   const { vault: v } = useStore();
   const [d, setD] = useState({ memberId: p.memberId, date: p.date, employer: p.employer });
   const [n, setN] = useState<Record<string, string>>(Object.fromEntries(F.map((f) => [f.k, p[f.k] ? ((p[f.k] as number) / 100).toFixed(2) : ''])));

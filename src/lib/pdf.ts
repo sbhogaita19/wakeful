@@ -24,3 +24,20 @@ export async function pdfToLines(buf: ArrayBuffer): Promise<string[]> {
   }
   return lines;
 }
+
+/** Render the first pages of a PDF to images (used for scanned PDFs that contain no text). */
+export async function pdfToCanvases(buf: ArrayBuffer, maxPages = 3, scale = 2.2): Promise<HTMLCanvasElement[]> {
+  const doc = await pdfjs.getDocument({ data: new Uint8Array(buf), isEvalSupported: false }).promise;
+  const out: HTMLCanvasElement[] = [];
+  for (let p = 1; p <= Math.min(doc.numPages, maxPages); p++) {
+    const page = await doc.getPage(p);
+    const viewport = page.getViewport({ scale });
+    const c = document.createElement('canvas');
+    c.width = Math.round(viewport.width); c.height = Math.round(viewport.height);
+    const ctx = c.getContext('2d')!;
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+    await page.render({ canvasContext: ctx, viewport } as never).promise;
+    out.push(c);
+  }
+  return out;
+}

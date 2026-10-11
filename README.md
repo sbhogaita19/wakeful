@@ -9,7 +9,7 @@ Everything is computed and encrypted **on your device**. No server, no account, 
 ## What it does
 - **Import statements** — Monzo, Starling, Nationwide CSV (best) or PDF (best-effort, flagged for checking). Duplicates skipped; transfers and pots detected so they don't count as spending.
 - **Automatic categorising** that learns from your corrections.
-- **Payslips → take-home** — drop in a PDF or type figures; per-person, with a tax/NI sanity check.
+- **Payslips → take-home** — drop in a PDF, a photo or scan (read on-device with OCR, then you confirm), or type figures; per-person, with a tax/NI sanity check.
 - **Household bills** — energy, water, council tax, broadband, mobile, insurance, subscriptions; contract end dates, price-rise tracking, bill-PDF reading, benchmark checks against the Ofgem cap, meter readings, per-person splits.
 - **Insights** — ranked "where to look" flags with an estimated yearly saving: renewals, ended contracts, high APR, fees, duplicates, trends, budget overruns, mortgage fix ending, LTV bands, low-rate savings, FSCS limits, payslip anomalies.
 - **Wealth** — net worth, trend, home equity and LTV, debt pay-off estimates.

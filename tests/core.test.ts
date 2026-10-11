@@ -412,3 +412,14 @@ describe('merge backup', () => {
     expect(newRecoveryKey()).toBeTruthy();
   });
 });
+
+import { normaliseOcrLines } from '../src/lib/ocr';
+describe('OCR text clean-up', () => {
+  it('fixes common slips so payslip parsing still works', () => {
+    const lines = normaliseOcrLines(['  Gross Pay   E3,555.00 ', 'Income  Tax | 421.00', 'Net Pay L2,702.00', '', 'Pay date 25/09/2026']);
+    expect(lines).toContain('Gross Pay £3,555.00');
+    expect(lines.some((l) => l.includes('Net Pay £2,702.00'))).toBe(true);
+    const g = parsePayslipLines(lines);
+    expect(g).toMatchObject({ gross: 355500, net: 270200 });
+  });
+});
